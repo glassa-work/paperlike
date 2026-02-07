@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paperlike Editor — Interactive Demo</title>
+  <style>
+    :root {
+      --bg: #f5f5f0;
+      --card: #ffffff;
+      --border: #e0ddd5;
+      --text: #1a1a1a;
+      --muted: #6b6b6b;
+      --accent: #2563eb;
+      --accent-light: #dbeafe;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --danger: #dc2626;
+      --danger-light: #fee2e2;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --purple: #7c3aed;
+      --purple-light: #ede9fe;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 0;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      color: white;
+      padding: 40px 32px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #94a3b8;
+      font-size: 1.05rem;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge-blue { background: var(--accent-light); color: var(--accent); }
+    .badge-green { background: var(--success-light); color: var(--success); }
+    .badge-purple { background: var(--purple-light); color: var(--purple); }
+
+    main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .demo-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .demo-section h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .demo-section h2 .icon {
+      font-size: 1.3rem;
+    }
+
+    .demo-section .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.82rem;
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    button:hover { background: #f8f8f5; border-color: #ccc; }
+    button:active { transform: scale(0.97); }
+
+    button.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    button.primary:hover { background: #1d4ed8; }
+
+    button.success {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+
+    button.danger {
+      background: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
+
+    button.purple {
+      background: var(--purple);
+      color: white;
+      border-color: var(--purple);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .block-list {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      min-height: 60px;
+      background: #fafaf8;
+    }
+
+    .block-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transition: background 0.15s;
+    }
+
+    .block-item:last-child { border-bottom: none; }
+    .block-item:hover { background: #f0f0ec; }
+
+    .block-item.selected {
+      background: var(--accent-light);
+      border-left: 3px solid var(--accent);
+    }
+
+    .block-type-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      min-width: 70px;
+      text-align: center;
+    }
+
+    .block-type-paragraph { background: #e0f2fe; color: #0369a1; }
+    .block-type-heading { background: #fef3c7; color: #b45309; }
+    .block-type-list { background: #d1fae5; color: #047857; }
+    .block-type-drawing_ref { background: #ede9fe; color: #6d28d9; }
+    .block-type-spacer { background: #f3f4f6; color: #6b7280; }
+    .block-type-section { background: #fce7f3; color: #be185d; }
+
+    .block-content {
+      flex: 1;
+      font-size: 0.92rem;
+      word-break: break-word;
+    }
+
+    .block-content h1, .block-content h2, .block-content h3 {
+      margin: 0;
+      line-height: 1.3;
+    }
+
+    .block-id {
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+
+    .canvas-area {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: white;
+      position: relative;
+      height: 300px;
+      overflow: hidden;
+      cursor: crosshair;
+    }
+
+    .canvas-element {
+      position: absolute;
+      border: 2px solid;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: move;
+      transition: box-shadow 0.15s;
+      user-select: none;
+    }
+
+    .canvas-element:hover {
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+    }
+
+    .canvas-element.selected {
+      box-shadow: 0 0 0 3px var(--accent);
+    }
+
+    .comment-list {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      min-height: 40px;
+      background: #fafaf8;
+    }
+
+    .comment-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid #eee;
+      font-size: 0.9rem;
+    }
+
+    .comment-item:last-child { border-bottom: none; }
+
+    .comment-author {
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.82rem;
+    }
+
+    .comment-anchor {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-left: 8px;
+    }
+
+    .comment-text { margin-top: 4px; }
+
+    .columns-demo {
+      display: flex;
+      gap: 12px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      min-height: 100px;
+    }
+
+    .lane {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      background: #fafaf8;
+      min-height: 80px;
+    }
+
+    .lane-header {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    .lane-block {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 4px;
+      padding: 6px 10px;
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+    }
+
+    .export-preview {
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: var(--radius);
+      padding: 16px;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 0.78rem;
+      max-height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-area {
+      background: #fafaf8;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      max-height: 150px;
+      overflow-y: auto;
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+
+    .log-entry {
+      padding: 2px 0;
+      border-bottom: 1px solid #f0f0ec;
+    }
+
+    .log-entry .log-time {
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .log-entry .log-op {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .status-bar {
+      display: flex;
+      gap: 16px;
+      padding: 8px 14px;
+      background: #f8f8f5;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.82rem;
+      margin-bottom: 12px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-dot.active { background: var(--success); }
+    .status-dot.inactive { background: #d1d5db; }
+
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 16px 0;
+    }
+
+    .history-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #f8f8f5;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      font-size: 0.82rem;
+    }
+
+    .history-bar .cursor-info {
+      margin-left: auto;
+      color: var(--muted);
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 0.78rem;
+    }
+
+    .sync-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .sync-indicator.synced { background: var(--success-light); color: var(--success); }
+    .sync-indicator.pending { background: var(--warning-light); color: var(--warning); }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 700px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    .empty-state { text-align: center; padding: 24px; color: var(--muted); font-size: 0.9rem; }
+
+    .empty-state-bordered {
+      text-align: center;
+      padding: 32px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+    }
+
+    .toolbar-separator {
+      width: 1px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📝 Paperlike Editor</h1>
+  <p>Interactive collaborative document editor library demo</p>
+  <div class="badge-row">
+    <span class="badge badge-blue">TypeScript</span>
+    <span class="badge badge-green">CRDT Collaboration</span>
+    <span class="badge badge-purple">Excalidraw Drawing</span>
+  </div>
+</header>
+
+<main>
+
+<!-- ===== BLOCK EDITOR ===== -->
+<div class="demo-section" id="editor-section">
+  <h2><span class="icon">📄</span> Block Editor</h2>
+  <p class="subtitle">Linear block-based document editor with paragraph, heading, list, drawing_ref, and spacer blocks</p>
+
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-dot active" id="lease-dot"></span>
+      <span>Lease: <strong id="lease-status">Active</strong></span>
+    </div>
+    <div class="status-item">
+      <span>Version: <strong id="doc-version">0</strong></span>
+    </div>
+    <div class="status-item">
+      <span>Blocks: <strong id="block-count">0</strong></span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="primary" onclick="addParagraph()">+ Paragraph</button>
+    <button onclick="addHeading()">+ Heading</button>
+    <button onclick="addList()">+ List</button>
+    <button onclick="addDrawingRef()">+ Drawing Ref</button>
+    <button onclick="addSpacer()">+ Spacer</button>
+    <span class="toolbar-separator"></span>
+    <button onclick="updateSelected()" id="btn-update">✏️ Edit</button>
+    <button onclick="moveSelectedUp()" id="btn-moveup">↑ Move Up</button>
+    <button onclick="moveSelectedDown()" id="btn-movedown">↓ Move Down</button>
+    <button class="danger" onclick="deleteSelected()" id="btn-delete">🗑 Delete</button>
+  </div>
+
+  <div class="block-list" id="block-list">
+    <div class="empty-state">Click a button above to add blocks to the document</div>
+  </div>
+
+  <div style="margin-top: 12px;">
+    <div class="log-area" id="body-log">
+      <div class="log-entry"><span class="log-time">ready</span> — Editor initialized</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DRAWING CANVAS ===== -->
+<div class="demo-section" id="drawing-section">
+  <h2><span class="icon">🎨</span> Drawing Canvas</h2>
+  <p class="subtitle">Excalidraw-compatible drawing with add/update/delete elements and persistent undo/redo</p>
+
+  <div class="history-bar">
+    <button onclick="drawUndo()" id="btn-undo">↩ Undo</button>
+    <button onclick="drawRedo()" id="btn-redo">↪ Redo</button>
+    <span class="toolbar-separator" style="height:20px"></span>
+    <button class="primary" onclick="addRect()">▭ Rectangle</button>
+    <button onclick="addCircle()">◯ Ellipse</button>
+    <button onclick="addLine()">╱ Line</button>
+    <button onclick="randomizeColors()">🎨 Recolor</button>
+    <button class="danger" onclick="deleteDrawingSelected()">🗑 Delete</button>
+    <span class="cursor-info" id="history-info">cursor: -1 / 0 actions</span>
+  </div>
+
+  <div class="canvas-area" id="canvas-area" onclick="canvasClick(event)">
+  </div>
+
+  <div style="margin-top: 12px;">
+    <div class="log-area" id="draw-log">
+      <div class="log-entry"><span class="log-time">ready</span> — Drawing canvas initialized</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COMMENTS ===== -->
+<div class="demo-section" id="comments-section">
+  <h2><span class="icon">💬</span> Comments (CRDT)</h2>
+  <p class="subtitle">Multi-author offline-capable comments using Yjs CRDT — concurrent edits from two simulated devices merge automatically</p>
+
+  <div class="two-col">
+    <div>
+      <div style="margin-bottom: 8px; font-weight: 600; font-size: 0.9rem;">
+        📱 Device A <span class="sync-indicator synced" id="sync-a">Synced</span>
+      </div>
+      <div class="toolbar">
+        <button class="primary" onclick="addCommentA()">+ Add Comment (Alice)</button>
+      </div>
+      <div class="comment-list" id="comments-a">
+        <div class="empty-state">No comments yet</div>
+      </div>
+    </div>
+    <div>
+      <div style="margin-bottom: 8px; font-weight: 600; font-size: 0.9rem;">
+        💻 Device B <span class="sync-indicator synced" id="sync-b">Synced</span>
+      </div>
+      <div class="toolbar">
+        <button class="primary" onclick="addCommentB()">+ Add Comment (Bob)</button>
+      </div>
+      <div class="comment-list" id="comments-b">
+        <div class="empty-state">No comments yet</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 12px;">
+    <div class="toolbar">
+      <button class="success" onclick="syncComments()">🔄 Sync Devices</button>
+      <button onclick="goOffline()">📴 Go Offline</button>
+      <button onclick="goOnline()">📶 Go Online</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COLUMN SECTIONS ===== -->
+<div class="demo-section" id="columns-section">
+  <h2><span class="icon">📊</span> Recursive Column Sections</h2>
+  <p class="subtitle">Nested lane-based layouts — sections can contain other sections for recursive column nesting</p>
+
+  <div class="toolbar">
+    <button class="primary" onclick="addTwoColumns()">Add 2-Column Section</button>
+    <button onclick="addThreeColumns()">Add 3-Column Section</button>
+    <button onclick="addNestedSection()">Add Nested Section</button>
+  </div>
+
+  <div id="columns-area">
+    <div class="empty-state-bordered">
+      Click a button above to create column layouts
+    </div>
+  </div>
+</div>
+
+<!-- ===== EXPORT/IMPORT ===== -->
+<div class="demo-section" id="export-section">
+  <h2><span class="icon">📦</span> Export / Import (.paperlike bundle)</h2>
+  <p class="subtitle">Export document as a .paperlike zip bundle with body.json, drawings, comments, and manifest — then re-import to verify state continuity</p>
+
+  <div class="toolbar">
+    <button class="success" onclick="exportBundle()">📤 Export Bundle</button>
+    <button class="primary" onclick="reimportBundle()">📥 Re-import & Verify</button>
+  </div>
+
+  <div class="export-preview" id="export-preview">
+    Click "Export Bundle" to generate the .paperlike manifest and see the serialized document state.
+  </div>
+</div>
+
+</main>
+
+<script>
+// =========================================================================
+// PAPERLIKE DEMO — Inline implementation using library concepts
+// =========================================================================
+
+// --- Branded ID helpers (mirrors src/types/ids.ts) ---
+let idCounter = 0;
+const makeId = (prefix) => `${prefix}-${++idCounter}`;
+
+// --- State ---
+let blocks = [];
+let selectedBlockId = null;
+let docVersion = 0;
+
+let drawingElements = [];
+let drawingAppState = { viewBackgroundColor: '#ffffff' };
+let drawingFiles = {};
+let drawingActions = [];
+let historyState = { undoCursor: -1, actionCount: 0 };
+let selectedElementId = null;
+
+let commentsOnline = true;
+let pendingA = [];
+let pendingB = [];
+
+// Comments CRDT simulation (simplified Yjs model)
+let commentsA = [];
+let commentsB = [];
+let commentCounterA = 0;
+let commentCounterB = 0;
+
+const sampleTexts = [
+  "This paragraph needs more detail",
+  "Great point, well articulated",
+  "Consider adding an example here",
+  "The drawing should include labels",
+  "This section is ready for review",
+  "Can we simplify this wording?",
+  "Nice layout structure!",
+  "Let's add more context",
+];
+
+const sampleParas = [
+  "Paperlike enables collaborative document editing with real-time sync.",
+  "The block-based architecture supports paragraphs, headings, lists, and embedded drawings.",
+  "Each document maintains a versioned history of all changes.",
+  "CRDT-based comments allow offline editing with automatic merge on reconnection.",
+  "Sections support recursive column layouts for complex document structures.",
+];
+
+const sampleHeadings = [
+  "Introduction",
+  "Getting Started",
+  "Architecture Overview",
+  "API Reference",
+  "Conclusion",
+];
+
+// ===== BLOCK EDITOR =====
+
+function renderBlocks() {
+  const el = document.getElementById('block-list');
+  if (blocks.length === 0) {
+    el.innerHTML = '<div class="empty-state">Click a button above to add blocks to the document</div>';
+  } else {
+    el.innerHTML = blocks.map(b => {
+      const selected = b.id === selectedBlockId ? ' selected' : '';
+      let content = '';
+      switch (b.type) {
+        case 'paragraph':
+          content = `<div>${b.text}</div>`;
+          break;
+        case 'heading':
+          content = `<h${b.level}>${b.text}</h${b.level}>`;
+          break;
+        case 'list':
+          const tag = b.ordered ? 'ol' : 'ul';
+          content = `<${tag}>${b.items.map(i => `<li>${i}</li>`).join('')}</${tag}>`;
+          break;
+        case 'drawing_ref':
+          content = `<div style="color:var(--purple)">📎 Drawing: ${b.drawingId}</div>`;
+          break;
+        case 'spacer':
+          content = `<div style="color:var(--muted);font-style:italic">— spacer —</div>`;
+          break;
+        case 'section':
+          content = `<div style="color:var(--danger)">⊞ Section (${b.layout.lanes.length} lanes)</div>`;
+          break;
+      }
+      return `<div class="block-item${selected}" onclick="selectBlock('${b.id}')">
+        <span class="block-type-badge block-type-${b.type}">${b.type}</span>
+        <div class="block-content">${content}<div class="block-id">${b.id}</div></div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('block-count').textContent = blocks.length;
+  document.getElementById('doc-version').textContent = docVersion;
+}
+
+function logBody(msg) {
+  const el = document.getElementById('body-log');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span> <span class="log-op">${msg}</span></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function selectBlock(id) {
+  selectedBlockId = selectedBlockId === id ? null : id;
+  renderBlocks();
+}
+
+function insertBlockAfter(block) {
+  if (selectedBlockId) {
+    const idx = blocks.findIndex(b => b.id === selectedBlockId);
+    if (idx !== -1) {
+      blocks = [...blocks.slice(0, idx + 1), block, ...blocks.slice(idx + 1)];
+    } else {
+      blocks = [...blocks, block];
+    }
+  } else {
+    blocks = [...blocks, block];
+  }
+  docVersion++;
+  selectedBlockId = block.id;
+  renderBlocks();
+}
+
+function addParagraph() {
+  const text = sampleParas[Math.floor(Math.random() * sampleParas.length)];
+  const block = { id: makeId('para'), type: 'paragraph', text };
+  insertBlockAfter(block);
+  logBody(`insert_block: paragraph "${text.slice(0, 40)}..."`);
+}
+
+function addHeading() {
+  const text = sampleHeadings[Math.floor(Math.random() * sampleHeadings.length)];
+  const level = Math.ceil(Math.random() * 3);
+  const block = { id: makeId('h'), type: 'heading', text, level };
+  insertBlockAfter(block);
+  logBody(`insert_block: h${level} "${text}"`);
+}
+
+function addList() {
+  const block = {
+    id: makeId('list'),
+    type: 'list',
+    items: ['First item', 'Second item', 'Third item'],
+    ordered: Math.random() > 0.5
+  };
+  insertBlockAfter(block);
+  logBody(`insert_block: ${block.ordered ? 'ordered' : 'unordered'} list`);
+}
+
+function addDrawingRef() {
+  const block = { id: makeId('dref'), type: 'drawing_ref', drawingId: 'drawing-e2e' };
+  insertBlockAfter(block);
+  logBody(`insert_block: drawing_ref → drawing-e2e`);
+}
+
+function addSpacer() {
+  const block = { id: makeId('spacer'), type: 'spacer' };
+  insertBlockAfter(block);
+  logBody(`insert_block: spacer`);
+}
+
+function updateSelected() {
+  if (!selectedBlockId) return;
+  const block = blocks.find(b => b.id === selectedBlockId);
+  if (!block) return;
+  if (block.type === 'paragraph') {
+    const newText = prompt('Edit paragraph text:', block.text);
+    if (newText !== null) {
+      blocks = blocks.map(b => b.id === selectedBlockId ? { ...b, text: newText } : b);
+      docVersion++;
+      renderBlocks();
+      logBody(`update_block: "${newText.slice(0, 40)}..."`);
+    }
+  } else if (block.type === 'heading') {
+    const newText = prompt('Edit heading text:', block.text);
+    if (newText !== null) {
+      blocks = blocks.map(b => b.id === selectedBlockId ? { ...b, text: newText } : b);
+      docVersion++;
+      renderBlocks();
+      logBody(`update_block: heading "${newText}"`);
+    }
+  }
+}
+
+function deleteSelected() {
+  if (!selectedBlockId) return;
+  const id = selectedBlockId;
+  blocks = blocks.filter(b => b.id !== id);
+  selectedBlockId = null;
+  docVersion++;
+  renderBlocks();
+  logBody(`delete_block: ${id}`);
+}
+
+function moveSelectedUp() {
+  if (!selectedBlockId) return;
+  const idx = blocks.findIndex(b => b.id === selectedBlockId);
+  if (idx <= 0) return;
+  const newBlocks = [...blocks];
+  [newBlocks[idx - 1], newBlocks[idx]] = [newBlocks[idx], newBlocks[idx - 1]];
+  blocks = newBlocks;
+  docVersion++;
+  renderBlocks();
+  logBody(`move_block: ${selectedBlockId} ↑`);
+}
+
+function moveSelectedDown() {
+  if (!selectedBlockId) return;
+  const idx = blocks.findIndex(b => b.id === selectedBlockId);
+  if (idx === -1 || idx >= blocks.length - 1) return;
+  const newBlocks = [...blocks];
+  [newBlocks[idx], newBlocks[idx + 1]] = [newBlocks[idx + 1], newBlocks[idx]];
+  blocks = newBlocks;
+  docVersion++;
+  renderBlocks();
+  logBody(`move_block: ${selectedBlockId} ↓`);
+}
+
+// ===== DRAWING CANVAS =====
+
+const colors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+
+function renderCanvas() {
+  const canvas = document.getElementById('canvas-area');
+  canvas.innerHTML = drawingElements.map(el => {
+    const sel = el.id === selectedElementId ? ' selected' : '';
+    const color = el.strokeColor || colors[0];
+    const bg = el.backgroundColor || 'transparent';
+    let shape = '';
+    let borderRadius = '4px';
+    if (el.type === 'ellipse') borderRadius = '50%';
+    if (el.type === 'line') {
+      return `<div class="canvas-element${sel}"
+        data-id="${el.id}"
+        onclick="event.stopPropagation(); selectElement('${el.id}')"
+        style="left:${el.x}px; top:${el.y}px; width:${el.width}px; height:2px;
+        background:${color}; border:none; border-radius:0;
+        transform: rotate(${el.angle || 0}deg)">
+      </div>`;
+    }
+    return `<div class="canvas-element${sel}"
+      data-id="${el.id}"
+      onclick="event.stopPropagation(); selectElement('${el.id}')"
+      style="left:${el.x}px; top:${el.y}px; width:${el.width}px; height:${el.height}px;
+      border-color:${color}; background:${bg}; border-radius:${borderRadius}">
+      <span style="color:${color}">${el.type === 'rectangle' ? '▭' : el.type === 'ellipse' ? '◯' : '╱'}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('history-info').textContent =
+    `cursor: ${historyState.undoCursor} / ${historyState.actionCount} actions`;
+  document.getElementById('btn-undo').disabled = historyState.undoCursor < 0;
+  document.getElementById('btn-redo').disabled = historyState.undoCursor >= historyState.actionCount - 1;
+}
+
+function logDraw(msg) {
+  const el = document.getElementById('draw-log');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span> <span class="log-op">${msg}</span></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function selectElement(id) {
+  selectedElementId = selectedElementId === id ? null : id;
+  renderCanvas();
+}
+
+function canvasClick(event) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  // Deselect on canvas bg click
+  selectedElementId = null;
+  renderCanvas();
+}
+
+function addShapeAt(type) {
+  const canvas = document.getElementById('canvas-area');
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  const size = type === 'line' ? { width: 80 + Math.random() * 100, height: 0 } : { width: 60 + Math.random() * 80, height: 40 + Math.random() * 60 };
+  const x = 20 + Math.random() * (w - size.width - 40);
+  const y = 20 + Math.random() * (h - (size.height || 20) - 40);
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const bg = Math.random() > 0.5 ? color + '20' : 'transparent';
+
+  const el = {
+    id: makeId('elem'),
+    type,
+    x: Math.round(x),
+    y: Math.round(y),
+    ...size,
+    strokeColor: color,
+    backgroundColor: bg,
+    angle: type === 'line' ? Math.round(Math.random() * 45 - 22) : 0,
+  };
+
+  // Create action with forward/inverse patches
+  const action = {
+    drawingId: 'drawing-e2e',
+    historyGroupId: makeId('hg'),
+    forward: [{ type: 'add_element', element: el }],
+    inverse: [{ type: 'delete_element', elementId: el.id }],
+    timestamp: Date.now(),
+  };
+
+  // Truncate redo stack
+  drawingActions = drawingActions.slice(0, historyState.undoCursor + 1);
+  drawingActions.push(action);
+  drawingElements.push(el);
+  historyState = {
+    undoCursor: drawingActions.length - 1,
+    actionCount: drawingActions.length,
+  };
+
+  selectedElementId = el.id;
+  renderCanvas();
+  logDraw(`add_element: ${type} at (${el.x}, ${el.y}) — ${el.id}`);
+}
+
+function addRect() { addShapeAt('rectangle'); }
+function addCircle() { addShapeAt('ellipse'); }
+function addLine() { addShapeAt('line'); }
+
+function randomizeColors() {
+  if (drawingElements.length === 0) return;
+  const patches = [];
+  const inversePatches = [];
+  drawingElements = drawingElements.map(el => {
+    const newColor = colors[Math.floor(Math.random() * colors.length)];
+    const newBg = Math.random() > 0.5 ? newColor + '20' : 'transparent';
+    inversePatches.push({ type: 'update_element', elementId: el.id, patch: { strokeColor: el.strokeColor, backgroundColor: el.backgroundColor } });
+    patches.push({ type: 'update_element', elementId: el.id, patch: { strokeColor: newColor, backgroundColor: newBg } });
+    return { ...el, strokeColor: newColor, backgroundColor: newBg };
+  });
+
+  const action = {
+    drawingId: 'drawing-e2e',
+    historyGroupId: makeId('hg'),
+    forward: patches,
+    inverse: inversePatches,
+    timestamp: Date.now(),
+  };
+  drawingActions = drawingActions.slice(0, historyState.undoCursor + 1);
+  drawingActions.push(action);
+  historyState = { undoCursor: drawingActions.length - 1, actionCount: drawingActions.length };
+  renderCanvas();
+  logDraw(`update_element: recolored ${drawingElements.length} elements`);
+}
+
+function deleteDrawingSelected() {
+  if (!selectedElementId) return;
+  const el = drawingElements.find(e => e.id === selectedElementId);
+  if (!el) return;
+
+  const action = {
+    drawingId: 'drawing-e2e',
+    historyGroupId: makeId('hg'),
+    forward: [{ type: 'delete_element', elementId: el.id }],
+    inverse: [{ type: 'add_element', element: el }],
+    timestamp: Date.now(),
+  };
+
+  drawingActions = drawingActions.slice(0, historyState.undoCursor + 1);
+  drawingActions.push(action);
+  drawingElements = drawingElements.filter(e => e.id !== selectedElementId);
+  historyState = { undoCursor: drawingActions.length - 1, actionCount: drawingActions.length };
+  selectedElementId = null;
+  renderCanvas();
+  logDraw(`delete_element: ${el.id}`);
+}
+
+function drawUndo() {
+  if (historyState.undoCursor < 0) return;
+  const action = drawingActions[historyState.undoCursor];
+  if (!action) return;
+
+  // Apply inverse patches
+  action.inverse.forEach(patch => {
+    switch (patch.type) {
+      case 'add_element':
+        drawingElements.push(patch.element);
+        break;
+      case 'delete_element':
+        drawingElements = drawingElements.filter(e => e.id !== patch.elementId);
+        break;
+      case 'update_element':
+        drawingElements = drawingElements.map(e => e.id === patch.elementId ? { ...e, ...patch.patch } : e);
+        break;
+    }
+  });
+
+  historyState = { ...historyState, undoCursor: historyState.undoCursor - 1 };
+  renderCanvas();
+  logDraw(`undo → cursor: ${historyState.undoCursor}`);
+}
+
+function drawRedo() {
+  if (historyState.undoCursor >= historyState.actionCount - 1) return;
+  const action = drawingActions[historyState.undoCursor + 1];
+  if (!action) return;
+
+  // Apply forward patches
+  action.forward.forEach(patch => {
+    switch (patch.type) {
+      case 'add_element':
+        drawingElements.push(patch.element);
+        break;
+      case 'delete_element':
+        drawingElements = drawingElements.filter(e => e.id !== patch.elementId);
+        break;
+      case 'update_element':
+        drawingElements = drawingElements.map(e => e.id === patch.elementId ? { ...e, ...patch.patch } : e);
+        break;
+    }
+  });
+
+  historyState = { ...historyState, undoCursor: historyState.undoCursor + 1 };
+  renderCanvas();
+  logDraw(`redo → cursor: ${historyState.undoCursor}`);
+}
+
+// ===== COMMENTS CRDT =====
+
+function renderComments() {
+  renderCommentList('comments-a', commentsA);
+  renderCommentList('comments-b', commentsB);
+}
+
+function renderCommentList(containerId, comments) {
+  const el = document.getElementById(containerId);
+  if (comments.length === 0) {
+    el.innerHTML = '<div class="empty-state">No comments yet</div>';
+    return;
+  }
+  el.innerHTML = comments.map(c => `
+    <div class="comment-item">
+      <span class="comment-author">${c.author}</span>
+      <span class="comment-anchor">on ${c.anchor}</span>
+      <div class="comment-text">${c.text}</div>
+    </div>
+  `).join('');
+}
+
+function addCommentA() {
+  const text = sampleTexts[commentCounterA % sampleTexts.length];
+  commentCounterA++;
+  const comment = {
+    id: makeId('comment'),
+    author: '👩 Alice',
+    anchor: blocks.length > 0 ? blocks[Math.floor(Math.random() * blocks.length)].id : 'doc',
+    text,
+    createdAt: Date.now(),
+  };
+  commentsA.push(comment);
+  if (commentsOnline) {
+    commentsB.push(comment);
+  } else {
+    pendingA.push(comment);
+    document.getElementById('sync-a').className = 'sync-indicator pending';
+    document.getElementById('sync-a').textContent = 'Pending';
+  }
+  renderComments();
+}
+
+function addCommentB() {
+  const text = sampleTexts[commentCounterB % sampleTexts.length];
+  commentCounterB++;
+  const comment = {
+    id: makeId('comment'),
+    author: '👨 Bob',
+    anchor: blocks.length > 0 ? blocks[Math.floor(Math.random() * blocks.length)].id : 'doc',
+    text,
+    createdAt: Date.now(),
+  };
+  commentsB.push(comment);
+  if (commentsOnline) {
+    commentsA.push(comment);
+  } else {
+    pendingB.push(comment);
+    document.getElementById('sync-b').className = 'sync-indicator pending';
+    document.getElementById('sync-b').textContent = 'Pending';
+  }
+  renderComments();
+}
+
+function syncComments() {
+  // Merge pending from A → B and B → A
+  pendingA.forEach(c => {
+    if (!commentsB.find(x => x.id === c.id)) commentsB.push(c);
+  });
+  pendingB.forEach(c => {
+    if (!commentsA.find(x => x.id === c.id)) commentsA.push(c);
+  });
+  pendingA = [];
+  pendingB = [];
+  document.getElementById('sync-a').className = 'sync-indicator synced';
+  document.getElementById('sync-a').textContent = 'Synced';
+  document.getElementById('sync-b').className = 'sync-indicator synced';
+  document.getElementById('sync-b').textContent = 'Synced';
+  commentsOnline = true;
+  renderComments();
+}
+
+function goOffline() {
+  commentsOnline = false;
+  document.getElementById('sync-a').className = 'sync-indicator pending';
+  document.getElementById('sync-a').textContent = 'Offline';
+  document.getElementById('sync-b').className = 'sync-indicator pending';
+  document.getElementById('sync-b').textContent = 'Offline';
+}
+
+function goOnline() {
+  syncComments();
+}
+
+// ===== COLUMN SECTIONS =====
+
+let columnSections = [];
+
+function renderColumns() {
+  const el = document.getElementById('columns-area');
+  if (columnSections.length === 0) {
+    el.innerHTML = '<div class="empty-state-bordered">Click a button above to create column layouts</div>';
+    return;
+  }
+  el.innerHTML = columnSections.map(sec => renderSection(sec)).join('');
+}
+
+function renderSection(section) {
+  return `<div class="columns-demo" style="margin-bottom: 12px;">
+    ${section.lanes.map(lane => `
+      <div class="lane">
+        <div class="lane-header">${lane.name}</div>
+        ${lane.blocks.map(b => `<div class="lane-block">${b}</div>`).join('')}
+        ${lane.nested ? renderSection(lane.nested) : ''}
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+function addTwoColumns() {
+  columnSections.push({
+    id: makeId('sec'),
+    lanes: [
+      { name: 'Lane A', blocks: ['Introduction text goes here', 'With supporting details'] },
+      { name: 'Lane B', blocks: ['Sidebar content', 'Additional notes', 'Reference links'] },
+    ],
+  });
+  renderColumns();
+}
+
+function addThreeColumns() {
+  columnSections.push({
+    id: makeId('sec'),
+    lanes: [
+      { name: 'Left', blocks: ['Navigation', 'Menu items'] },
+      { name: 'Center', blocks: ['Main content area', 'Primary article text', 'With multiple paragraphs'] },
+      { name: 'Right', blocks: ['Related articles', 'Tags & categories'] },
+    ],
+  });
+  renderColumns();
+}
+
+function addNestedSection() {
+  columnSections.push({
+    id: makeId('sec'),
+    lanes: [
+      {
+        name: 'Outer Left',
+        blocks: ['Outer content'],
+        nested: {
+          id: makeId('sec'),
+          lanes: [
+            { name: 'Inner A', blocks: ['Nested block 1'] },
+            { name: 'Inner B', blocks: ['Nested block 2', 'More nesting'] },
+          ],
+        },
+      },
+      { name: 'Outer Right', blocks: ['Right column', 'Content here'] },
+    ],
+  });
+  renderColumns();
+}
+
+// ===== EXPORT =====
+
+function exportBundle() {
+  const manifest = {
+    version: '1.0',
+    docId: 'doc-demo',
+    createdAt: new Date().toISOString(),
+    drawingIds: ['drawing-e2e'],
+  };
+
+  const bodySnapshot = {
+    docId: 'doc-demo',
+    version: docVersion,
+    blocks: blocks,
+  };
+
+  const drawingScene = {
+    drawingId: 'drawing-e2e',
+    elements: drawingElements,
+    appState: drawingAppState,
+    files: drawingFiles,
+  };
+
+  const bundle = {
+    'manifest.json': manifest,
+    'body.json': bodySnapshot,
+    'drawings/drawing-e2e.scene.json': drawingScene,
+    'drawings/drawing-e2e.history.jsonl': drawingActions.map(a => JSON.stringify(a)).join('\n'),
+    'drawings/drawing-e2e.history_state.json': historyState,
+    'comments_count': commentsA.length,
+  };
+
+  const preview = `📦 .paperlike Bundle Contents
+${'═'.repeat(50)}
+
+📋 manifest.json
+${JSON.stringify(manifest, null, 2)}
+
+📄 body.json (${blocks.length} blocks, version ${docVersion})
+${JSON.stringify(bodySnapshot, null, 2).slice(0, 500)}${blocks.length > 3 ? '\n  ...' : ''}
+
+🎨 drawings/drawing-e2e.scene.json (${drawingElements.length} elements)
+${JSON.stringify(drawingScene, null, 2).slice(0, 400)}${drawingElements.length > 2 ? '\n  ...' : ''}
+
+📜 drawings/drawing-e2e.history.jsonl (${drawingActions.length} actions)
+${drawingActions.slice(0, 2).map(a => JSON.stringify(a)).join('\n')}${drawingActions.length > 2 ? '\n...' : ''}
+
+⏱ drawings/drawing-e2e.history_state.json
+${JSON.stringify(historyState, null, 2)}
+
+💬 comments: ${commentsA.length} comments on device A
+`;
+
+  document.getElementById('export-preview').textContent = preview;
+}
+
+function reimportBundle() {
+  if (blocks.length === 0 && drawingElements.length === 0) {
+    document.getElementById('export-preview').textContent = '⚠️ Nothing to re-import. Add some blocks and drawing elements first, then export.';
+    return;
+  }
+
+  // Simulate serialization round-trip
+  const serializedBody = JSON.stringify({ docId: 'doc-demo', version: docVersion, blocks });
+  const serializedScene = JSON.stringify({ drawingId: 'drawing-e2e', elements: drawingElements, appState: drawingAppState, files: drawingFiles });
+  const serializedHistory = drawingActions.map(a => JSON.stringify(a)).join('\n');
+  const serializedHistoryState = JSON.stringify(historyState);
+
+  // Deserialize
+  const importedBody = JSON.parse(serializedBody);
+  const importedScene = JSON.parse(serializedScene);
+  const importedHistory = serializedHistory.trim() ? serializedHistory.trim().split('\n').map(l => JSON.parse(l)) : [];
+  const importedHistoryState = JSON.parse(serializedHistoryState);
+
+  // Verify
+  const checks = [
+    { label: 'Body blocks count', expected: blocks.length, actual: importedBody.blocks.length },
+    { label: 'Doc version', expected: docVersion, actual: importedBody.version },
+    { label: 'Drawing elements count', expected: drawingElements.length, actual: importedScene.elements.length },
+    { label: 'History actions count', expected: drawingActions.length, actual: importedHistory.length },
+    { label: 'History cursor', expected: historyState.undoCursor, actual: importedHistoryState.undoCursor },
+  ];
+
+  const allPassed = checks.every(c => c.expected === c.actual);
+
+  let result = `📥 Re-import Verification
+${'═'.repeat(50)}
+
+`;
+  checks.forEach(c => {
+    const pass = c.expected === c.actual;
+    result += `${pass ? '✅' : '❌'} ${c.label}: ${c.actual} ${pass ? '(matches)' : `(expected ${c.expected})`}\n`;
+  });
+  result += `\n${allPassed ? '🎉 All checks passed — state continuity verified!' : '⚠️ Some checks failed'}`;
+
+  document.getElementById('export-preview').textContent = result;
+}
+
+// ===== INITIALIZE =====
+
+// Pre-populate with sample content
+function initializeDemo() {
+  // Add some initial blocks
+  blocks = [
+    { id: makeId('h'), type: 'heading', text: 'Welcome to Paperlike', level: 1 },
+    { id: makeId('para'), type: 'paragraph', text: 'Paperlike enables collaborative document editing with real-time sync, CRDT-based comments, and Excalidraw-compatible drawings.' },
+    { id: makeId('para'), type: 'paragraph', text: 'The block-based architecture supports paragraphs, headings, lists, and embedded drawings with persistent undo/redo.' },
+    { id: makeId('list'), type: 'list', items: ['Block editor with 6 block types', 'Drawing canvas with undo/redo', 'CRDT comments for offline collaboration', 'Recursive column sections', 'Export/import .paperlike bundles'], ordered: false },
+    { id: makeId('dref'), type: 'drawing_ref', drawingId: 'drawing-e2e' },
+  ];
+  docVersion = 5;
+
+  // Add some initial drawing elements
+  addShapeAt('rectangle');
+  addShapeAt('ellipse');
+  addShapeAt('rectangle');
+  addShapeAt('line');
+  addShapeAt('ellipse');
+
+  // Add initial comments
+  commentsA = [
+    { id: makeId('c'), author: '👩 Alice', anchor: blocks[0].id, text: 'Great title!', createdAt: Date.now() - 60000 },
+    { id: makeId('c'), author: '👨 Bob', anchor: blocks[1].id, text: 'Consider adding more detail about the sync protocol.', createdAt: Date.now() - 30000 },
+  ];
+  commentsB = [...commentsA];
+
+  // Add initial column section
+  addTwoColumns();
+
+  renderBlocks();
+  renderCanvas();
+  renderComments();
+}
+
+initializeDemo();
+</script>
+
+</body>
+</html>
