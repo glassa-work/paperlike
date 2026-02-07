@@ -3,616 +3,761 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Paperlike Editor — Interactive Demo</title>
+  <title>Paperlike</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
+    /* ============================================================
+       PAPERLIKE — Obsidian + Excalidraw inspired UI
+       Hand-drawn Caveat font everywhere for paper-like feel
+       ============================================================ */
     :root {
-      --bg: #f5f5f0;
-      --card: #ffffff;
-      --border: #e0ddd5;
-      --text: #1a1a1a;
-      --muted: #6b6b6b;
-      --accent: #2563eb;
-      --accent-light: #dbeafe;
-      --success: #16a34a;
-      --success-light: #dcfce7;
-      --danger: #dc2626;
-      --danger-light: #fee2e2;
-      --warning: #f59e0b;
-      --warning-light: #fef3c7;
-      --purple: #7c3aed;
-      --purple-light: #ede9fe;
-      --radius: 8px;
-      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+      --font: 'Caveat', cursive;
+      --bg: #faf8f5;
+      --surface: #ffffff;
+      --sidebar-bg: #1e1e2e;
+      --sidebar-text: #cdd6f4;
+      --sidebar-active: #89b4fa;
+      --sidebar-hover: #313244;
+      --border: #e8e4de;
+      --text: #2c2c2c;
+      --muted: #888580;
+      --accent: #5b8af5;
+      --accent-soft: rgba(91,138,245,0.12);
+      --green: #40a06c;
+      --green-soft: rgba(64,160,108,0.12);
+      --red: #e64553;
+      --red-soft: rgba(230,69,83,0.12);
+      --orange: #df8e1d;
+      --purple: #8839ef;
+      --purple-soft: rgba(136,57,239,0.12);
+      --canvas-dot: #ddd8d0;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.1);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.15);
+      --radius: 12px;
+      --radius-sm: 8px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      padding: 0;
-    }
-
-    header {
-      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-      color: white;
-      padding: 40px 32px;
-      text-align: center;
-    }
-
-    header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    header p {
-      color: #94a3b8;
-      font-size: 1.05rem;
-    }
-
-    .badge-row {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      margin-top: 16px;
-      flex-wrap: wrap;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-
-    .badge-blue { background: var(--accent-light); color: var(--accent); }
-    .badge-green { background: var(--success-light); color: var(--success); }
-    .badge-purple { background: var(--purple-light); color: var(--purple); }
-
-    main {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 32px 24px;
-    }
-
-    .demo-section {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-      margin-bottom: 24px;
-      box-shadow: var(--shadow);
-    }
-
-    .demo-section h2 {
+      font-family: var(--font);
       font-size: 1.25rem;
+      color: var(--text);
+      background: var(--bg);
+      display: flex;
+    }
+
+    /* ===== SIDEBAR (Obsidian-style) ===== */
+    .sidebar {
+      width: 220px;
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      user-select: none;
+      z-index: 10;
+    }
+
+    .sidebar-brand {
+      padding: 20px 18px 16px;
+      font-size: 1.5rem;
       font-weight: 700;
-      margin-bottom: 4px;
+      letter-spacing: -0.02em;
+      color: #fff;
+      border-bottom: 1px solid #313244;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 8px 8px;
+      overflow-y: auto;
+    }
+
+    .sidebar-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-    }
-
-    .demo-section h2 .icon {
-      font-size: 1.3rem;
-    }
-
-    .demo-section .subtitle {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 16px;
-    }
-
-    .toolbar {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-
-    button {
-      font-family: inherit;
-      font-size: 0.82rem;
-      padding: 6px 14px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.15s ease;
-    }
-
-    button:hover { background: #f8f8f5; border-color: #ccc; }
-    button:active { transform: scale(0.97); }
-
-    button.primary {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-    button.primary:hover { background: #1d4ed8; }
-
-    button.success {
-      background: var(--success);
-      color: white;
-      border-color: var(--success);
-    }
-
-    button.danger {
-      background: var(--danger);
-      color: white;
-      border-color: var(--danger);
-    }
-
-    button.purple {
-      background: var(--purple);
-      color: white;
-      border-color: var(--purple);
-    }
-
-    button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    .block-list {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      min-height: 60px;
-      background: #fafaf8;
-    }
-
-    .block-item {
-      padding: 10px 14px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      align-items: flex-start;
       gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--sidebar-text);
       transition: background 0.15s;
     }
 
-    .block-item:last-child { border-bottom: none; }
-    .block-item:hover { background: #f0f0ec; }
+    .sidebar-item:hover { background: var(--sidebar-hover); }
 
-    .block-item.selected {
-      background: var(--accent-light);
-      border-left: 3px solid var(--accent);
+    .sidebar-item.active {
+      background: rgba(137,180,250,0.12);
+      color: var(--sidebar-active);
+      font-weight: 600;
     }
 
-    .block-type-badge {
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      white-space: nowrap;
-      min-width: 70px;
+    .sidebar-item .nav-icon {
+      font-size: 1.2rem;
+      width: 24px;
       text-align: center;
+      flex-shrink: 0;
     }
 
-    .block-type-paragraph { background: #e0f2fe; color: #0369a1; }
-    .block-type-heading { background: #fef3c7; color: #b45309; }
-    .block-type-list { background: #d1fae5; color: #047857; }
-    .block-type-drawing_ref { background: #ede9fe; color: #6d28d9; }
-    .block-type-spacer { background: #f3f4f6; color: #6b7280; }
-    .block-type-section { background: #fce7f3; color: #be185d; }
+    .sidebar-divider {
+      height: 1px;
+      background: #313244;
+      margin: 8px 14px;
+    }
 
-    .block-content {
+    .sidebar-section-label {
+      font-size: 0.85rem;
+      color: #6c7086;
+      padding: 8px 14px 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main-area {
       flex: 1;
-      font-size: 0.92rem;
-      word-break: break-word;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
 
-    .block-content h1, .block-content h2, .block-content h3 {
-      margin: 0;
-      line-height: 1.3;
+    .content-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
     }
 
-    .block-id {
-      font-size: 0.7rem;
+    .page-view {
+      display: none;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 48px 80px;
+      min-height: 100%;
+    }
+
+    .page-view.active {
+      display: block;
+    }
+
+    /* ===== FLOATING TOOLBAR ===== */
+    .float-toolbar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .float-toolbar.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .float-toolbar button {
+      font-family: var(--font);
+      font-size: 1.15rem;
+      padding: 8px 14px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 20px;
+      transition: background 0.12s;
+      white-space: nowrap;
+    }
+
+    .float-toolbar button:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .float-toolbar button.active-tool {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .float-toolbar button.danger-tool:hover {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .float-toolbar .separator {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    /* ===== EDITOR PAGE ===== */
+    .editor-title {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--text);
+      border: none;
+      outline: none;
+      width: 100%;
+      margin-bottom: 8px;
+      line-height: 1.15;
+    }
+
+    .editor-meta {
+      font-size: 1rem;
       color: var(--muted);
-      font-family: 'SF Mono', Consolas, monospace;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
 
-    .canvas-area {
+    .meta-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      display: inline-block;
+    }
+
+    .block-editor {
+      min-height: 200px;
+    }
+
+    .block {
+      padding: 6px 0;
+      border-radius: var(--radius-sm);
+      cursor: text;
+      position: relative;
+      transition: background 0.12s;
+    }
+
+    .block:hover {
+      background: rgba(0,0,0,0.018);
+    }
+
+    .block.selected {
+      background: var(--accent-soft);
+    }
+
+    .block .handle {
+      position: absolute;
+      left: -32px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      opacity: 0;
+      cursor: grab;
+      font-size: 1.1rem;
+      transition: opacity 0.15s;
+    }
+
+    .block:hover .handle { opacity: 0.5; }
+    .block:hover .handle:hover { opacity: 1; }
+
+    .block p {
+      font-size: 1.35rem;
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    .block h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin: 20px 0 8px;
+    }
+
+    .block h2 {
+      font-size: 1.9rem;
+      font-weight: 600;
+      line-height: 1.3;
+      margin: 16px 0 6px;
+    }
+
+    .block h3 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      line-height: 1.35;
+      margin: 12px 0 4px;
+    }
+
+    .block ul, .block ol {
+      padding-left: 24px;
+      font-size: 1.3rem;
+      line-height: 1.8;
+    }
+
+    .block li { margin: 2px 0; }
+
+    .block .drawing-embed {
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      color: var(--purple);
+      font-size: 1.2rem;
+      margin: 12px 0;
+    }
+
+    .block .spacer-line {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+
+    .block .section-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      background: var(--purple-soft);
+      color: var(--purple);
+      border-radius: 20px;
+      font-size: 1.1rem;
+    }
+
+    .add-block-line {
+      padding: 12px 0;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .block-editor:hover .add-block-line { opacity: 1; }
+
+    .add-block-line button {
+      font-family: var(--font);
+      font-size: 1.1rem;
+      background: none;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      padding: 6px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .add-block-line button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    /* ===== DRAWING PAGE ===== */
+    .drawing-canvas {
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: white;
       position: relative;
-      height: 300px;
+      height: 500px;
       overflow: hidden;
       cursor: crosshair;
+      background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
+      background-size: 24px 24px;
     }
 
     .canvas-element {
       position: absolute;
       border: 2px solid;
-      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.7rem;
-      font-weight: 600;
+      font-size: 1rem;
       cursor: move;
-      transition: box-shadow 0.15s;
       user-select: none;
+      transition: filter 0.15s;
     }
 
     .canvas-element:hover {
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+      filter: brightness(1.05);
     }
 
     .canvas-element.selected {
-      box-shadow: 0 0 0 3px var(--accent);
+      box-shadow: 0 0 0 3px var(--accent), 0 0 0 5px rgba(91,138,245,0.2);
     }
 
-    .comment-list {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      min-height: 40px;
-      background: #fafaf8;
+    .drawing-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      font-size: 1.05rem;
+      color: var(--muted);
     }
 
-    .comment-item {
-      padding: 10px 14px;
-      border-bottom: 1px solid #eee;
+    /* ===== COMMENTS PAGE ===== */
+    .comments-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .device-panel {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .device-label {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sync-badge {
       font-size: 0.9rem;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-weight: 600;
     }
 
-    .comment-item:last-child { border-bottom: none; }
+    .sync-badge.synced { background: var(--green-soft); color: var(--green); }
+    .sync-badge.offline { background: var(--red-soft); color: var(--red); }
+    .sync-badge.pending { background: rgba(223,142,29,0.12); color: var(--orange); }
 
-    .comment-author {
+    .comment-thread {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .comment-thread:last-child { border-bottom: none; }
+
+    .comment-author-name {
       font-weight: 600;
       color: var(--accent);
-      font-size: 0.82rem;
+      font-size: 1.15rem;
     }
 
-    .comment-anchor {
-      font-size: 0.72rem;
+    .comment-on {
+      font-size: 0.95rem;
       color: var(--muted);
       margin-left: 8px;
     }
 
-    .comment-text { margin-top: 4px; }
-
-    .columns-demo {
-      display: flex;
-      gap: 12px;
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      padding: 12px;
-      min-height: 100px;
+    .comment-body {
+      margin-top: 4px;
+      font-size: 1.2rem;
+      line-height: 1.5;
     }
 
-    .lane {
-      flex: 1;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px;
-      background: #fafaf8;
-      min-height: 80px;
-    }
-
-    .lane-header {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 8px;
-      letter-spacing: 0.05em;
-    }
-
-    .lane-block {
-      background: white;
-      border: 1px solid #e5e5e5;
-      border-radius: 4px;
-      padding: 6px 10px;
-      margin-bottom: 6px;
-      font-size: 0.85rem;
-    }
-
-    .export-preview {
-      background: #1e293b;
-      color: #e2e8f0;
-      border-radius: var(--radius);
-      padding: 16px;
-      font-family: 'SF Mono', Consolas, monospace;
-      font-size: 0.78rem;
-      max-height: 250px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
-    .log-area {
-      background: #fafaf8;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 10px 14px;
-      font-size: 0.82rem;
-      max-height: 150px;
-      overflow-y: auto;
-      font-family: 'SF Mono', Consolas, monospace;
-    }
-
-    .log-entry {
-      padding: 2px 0;
-      border-bottom: 1px solid #f0f0ec;
-    }
-
-    .log-entry .log-time {
-      color: var(--muted);
-      font-size: 0.72rem;
-    }
-
-    .log-entry .log-op {
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    .status-bar {
-      display: flex;
-      gap: 16px;
-      padding: 8px 14px;
-      background: #f8f8f5;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      font-size: 0.82rem;
-      margin-bottom: 12px;
-    }
-
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-
-    .status-dot.active { background: var(--success); }
-    .status-dot.inactive { background: #d1d5db; }
-
-    .section-divider {
-      height: 1px;
-      background: var(--border);
-      margin: 16px 0;
-    }
-
-    .history-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: #f8f8f5;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      margin-bottom: 12px;
-      font-size: 0.82rem;
-    }
-
-    .history-bar .cursor-info {
-      margin-left: auto;
-      color: var(--muted);
-      font-family: 'SF Mono', Consolas, monospace;
-      font-size: 0.78rem;
-    }
-
-    .sync-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-
-    .sync-indicator.synced { background: var(--success-light); color: var(--success); }
-    .sync-indicator.pending { background: var(--warning-light); color: var(--warning); }
-
-    .two-col {
+    .two-panel {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 32px;
+    }
+
+    .panel-divider {
+      width: 1px;
+      background: var(--border);
     }
 
     @media (max-width: 700px) {
-      .two-col { grid-template-columns: 1fr; }
+      .two-panel { grid-template-columns: 1fr; }
     }
 
-    .empty-state { text-align: center; padding: 24px; color: var(--muted); font-size: 0.9rem; }
+    /* ===== COLUMNS PAGE ===== */
+    .columns-layout {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
 
-    .empty-state-bordered {
-      text-align: center;
-      padding: 32px;
-      color: var(--muted);
+    .col-lane {
+      flex: 1;
+      background: rgba(0,0,0,0.02);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      min-height: 80px;
+    }
+
+    .col-lane-label {
       font-size: 0.9rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+
+    .col-lane-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      margin-bottom: 8px;
+      font-size: 1.15rem;
+    }
+
+    /* ===== EXPORT PAGE ===== */
+    .export-terminal {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    /* ===== EMPTY STATES ===== */
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      font-size: 1.2rem;
+    }
+
+    .empty-dashed {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      font-size: 1.2rem;
       border: 2px dashed var(--border);
       border-radius: var(--radius);
     }
 
-    .toolbar-separator {
-      width: 1px;
-      background: var(--border);
-      margin: 0 4px;
+    /* ===== PAGE TITLES ===== */
+    .page-title {
+      font-size: 2.6rem;
+      font-weight: 700;
+      margin-bottom: 6px;
     }
+
+    .page-subtitle {
+      font-size: 1.15rem;
+      color: var(--muted);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    /* ===== LOG ===== */
+    .log-panel {
+      margin-top: 20px;
+      background: rgba(0,0,0,0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      max-height: 140px;
+      overflow-y: auto;
+      font-size: 1rem;
+    }
+
+    .log-line {
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-line:last-child { border-bottom: none; }
+    .log-ts { color: var(--muted); font-size: 0.9rem; flex-shrink: 0; }
+    .log-msg { color: var(--accent); font-weight: 500; }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>📝 Paperlike Editor</h1>
-  <p>Interactive collaborative document editor library demo</p>
-  <div class="badge-row">
-    <span class="badge badge-blue">TypeScript</span>
-    <span class="badge badge-green">CRDT Collaboration</span>
-    <span class="badge badge-purple">Excalidraw Drawing</span>
-  </div>
-</header>
-
-<main>
-
-<!-- ===== BLOCK EDITOR ===== -->
-<div class="demo-section" id="editor-section">
-  <h2><span class="icon">📄</span> Block Editor</h2>
-  <p class="subtitle">Linear block-based document editor with paragraph, heading, list, drawing_ref, and spacer blocks</p>
-
-  <div class="status-bar">
-    <div class="status-item">
-      <span class="status-dot active" id="lease-dot"></span>
-      <span>Lease: <strong id="lease-status">Active</strong></span>
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+  <div class="sidebar-brand">📝 Paperlike</div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Document</div>
+    <div class="sidebar-item active" data-page="editor" onclick="showPage('editor')">
+      <span class="nav-icon">📄</span> Editor
     </div>
-    <div class="status-item">
-      <span>Version: <strong id="doc-version">0</strong></span>
+    <div class="sidebar-item" data-page="drawing" onclick="showPage('drawing')">
+      <span class="nav-icon">🎨</span> Drawing
     </div>
-    <div class="status-item">
-      <span>Blocks: <strong id="block-count">0</strong></span>
+    <div class="sidebar-item" data-page="comments" onclick="showPage('comments')">
+      <span class="nav-icon">💬</span> Comments
     </div>
-  </div>
-
-  <div class="toolbar">
-    <button class="primary" onclick="addParagraph()">+ Paragraph</button>
-    <button onclick="addHeading()">+ Heading</button>
-    <button onclick="addList()">+ List</button>
-    <button onclick="addDrawingRef()">+ Drawing Ref</button>
-    <button onclick="addSpacer()">+ Spacer</button>
-    <span class="toolbar-separator"></span>
-    <button onclick="updateSelected()" id="btn-update">✏️ Edit</button>
-    <button onclick="moveSelectedUp()" id="btn-moveup">↑ Move Up</button>
-    <button onclick="moveSelectedDown()" id="btn-movedown">↓ Move Down</button>
-    <button class="danger" onclick="deleteSelected()" id="btn-delete">🗑 Delete</button>
-  </div>
-
-  <div class="block-list" id="block-list">
-    <div class="empty-state">Click a button above to add blocks to the document</div>
-  </div>
-
-  <div style="margin-top: 12px;">
-    <div class="log-area" id="body-log">
-      <div class="log-entry"><span class="log-time">ready</span> — Editor initialized</div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Layout</div>
+    <div class="sidebar-item" data-page="columns" onclick="showPage('columns')">
+      <span class="nav-icon">📊</span> Columns
     </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">File</div>
+    <div class="sidebar-item" data-page="export" onclick="showPage('export')">
+      <span class="nav-icon">📦</span> Export
+    </div>
+  </nav>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div class="main-area">
+  <div class="content-scroll">
+
+    <!-- EDITOR PAGE -->
+    <div class="page-view active" id="page-editor">
+      <div class="editor-title">Welcome to Paperlike</div>
+      <div class="editor-meta">
+        <span><span class="meta-dot"></span> Lease active</span>
+        <span>Version <strong id="doc-version">0</strong></span>
+        <span><strong id="block-count">0</strong> blocks</span>
+      </div>
+      <div class="block-editor" id="block-editor"></div>
+      <div class="add-block-line">
+        <button onclick="addParagraph()">+ add block</button>
+      </div>
+      <div class="log-panel" id="body-log">
+        <div class="log-line"><span class="log-ts">ready</span><span class="log-msg">editor initialized</span></div>
+      </div>
+    </div>
+
+    <!-- DRAWING PAGE -->
+    <div class="page-view" id="page-drawing">
+      <div class="page-title">Drawing Canvas</div>
+      <div class="page-subtitle">Excalidraw-compatible — add shapes, undo/redo, persistent history</div>
+      <div class="drawing-canvas" id="canvas-area" onclick="canvasClick(event)"></div>
+      <div class="drawing-status">
+        <span id="history-info">cursor: -1 / 0 actions</span>
+        <span>·</span>
+        <span id="elem-count">0 elements</span>
+      </div>
+      <div class="log-panel" id="draw-log">
+        <div class="log-line"><span class="log-ts">ready</span><span class="log-msg">canvas initialized</span></div>
+      </div>
+    </div>
+
+    <!-- COMMENTS PAGE -->
+    <div class="page-view" id="page-comments">
+      <div class="page-title">Comments</div>
+      <div class="page-subtitle">CRDT-powered — offline edits from multiple devices merge automatically</div>
+      <div class="two-panel">
+        <div class="device-panel">
+          <div class="device-label">📱 Device A <span class="sync-badge synced" id="sync-a">synced</span></div>
+          <div id="comments-a"><div class="empty">no comments yet</div></div>
+        </div>
+        <div class="device-panel">
+          <div class="device-label">💻 Device B <span class="sync-badge synced" id="sync-b">synced</span></div>
+          <div id="comments-b"><div class="empty">no comments yet</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMNS PAGE -->
+    <div class="page-view" id="page-columns">
+      <div class="page-title">Column Sections</div>
+      <div class="page-subtitle">Recursive lane-based layouts — sections nest inside sections</div>
+      <div id="columns-area">
+        <div class="empty-dashed">add a column layout below</div>
+      </div>
+    </div>
+
+    <!-- EXPORT PAGE -->
+    <div class="page-view" id="page-export">
+      <div class="page-title">Export / Import</div>
+      <div class="page-subtitle">.paperlike bundle — body.json, drawings, comments, manifest</div>
+      <div class="export-terminal" id="export-preview">click "export" in the toolbar to see the serialized bundle</div>
+    </div>
+
   </div>
 </div>
 
-<!-- ===== DRAWING CANVAS ===== -->
-<div class="demo-section" id="drawing-section">
-  <h2><span class="icon">🎨</span> Drawing Canvas</h2>
-  <p class="subtitle">Excalidraw-compatible drawing with add/update/delete elements and persistent undo/redo</p>
-
-  <div class="history-bar">
-    <button onclick="drawUndo()" id="btn-undo">↩ Undo</button>
-    <button onclick="drawRedo()" id="btn-redo">↪ Redo</button>
-    <span class="toolbar-separator" style="height:20px"></span>
-    <button class="primary" onclick="addRect()">▭ Rectangle</button>
-    <button onclick="addCircle()">◯ Ellipse</button>
-    <button onclick="addLine()">╱ Line</button>
-    <button onclick="randomizeColors()">🎨 Recolor</button>
-    <button class="danger" onclick="deleteDrawingSelected()">🗑 Delete</button>
-    <span class="cursor-info" id="history-info">cursor: -1 / 0 actions</span>
-  </div>
-
-  <div class="canvas-area" id="canvas-area" onclick="canvasClick(event)">
-  </div>
-
-  <div style="margin-top: 12px;">
-    <div class="log-area" id="draw-log">
-      <div class="log-entry"><span class="log-time">ready</span> — Drawing canvas initialized</div>
-    </div>
-  </div>
+<!-- ===== FLOATING TOOLBARS ===== -->
+<div class="float-toolbar visible" id="toolbar-editor">
+  <button onclick="addParagraph()" title="Paragraph">¶</button>
+  <button onclick="addHeading()" title="Heading">H</button>
+  <button onclick="addList()" title="List">☰</button>
+  <button onclick="addDrawingRef()" title="Drawing">🖼</button>
+  <button onclick="addSpacer()" title="Spacer">—</button>
+  <div class="separator"></div>
+  <button onclick="updateSelected()" title="Edit">✎</button>
+  <button onclick="moveSelectedUp()" title="Move up">↑</button>
+  <button onclick="moveSelectedDown()" title="Move down">↓</button>
+  <button class="danger-tool" onclick="deleteSelected()" title="Delete">✕</button>
 </div>
 
-<!-- ===== COMMENTS ===== -->
-<div class="demo-section" id="comments-section">
-  <h2><span class="icon">💬</span> Comments (CRDT)</h2>
-  <p class="subtitle">Multi-author offline-capable comments using Yjs CRDT — concurrent edits from two simulated devices merge automatically</p>
-
-  <div class="two-col">
-    <div>
-      <div style="margin-bottom: 8px; font-weight: 600; font-size: 0.9rem;">
-        📱 Device A <span class="sync-indicator synced" id="sync-a">Synced</span>
-      </div>
-      <div class="toolbar">
-        <button class="primary" onclick="addCommentA()">+ Add Comment (Alice)</button>
-      </div>
-      <div class="comment-list" id="comments-a">
-        <div class="empty-state">No comments yet</div>
-      </div>
-    </div>
-    <div>
-      <div style="margin-bottom: 8px; font-weight: 600; font-size: 0.9rem;">
-        💻 Device B <span class="sync-indicator synced" id="sync-b">Synced</span>
-      </div>
-      <div class="toolbar">
-        <button class="primary" onclick="addCommentB()">+ Add Comment (Bob)</button>
-      </div>
-      <div class="comment-list" id="comments-b">
-        <div class="empty-state">No comments yet</div>
-      </div>
-    </div>
-  </div>
-
-  <div style="margin-top: 12px;">
-    <div class="toolbar">
-      <button class="success" onclick="syncComments()">🔄 Sync Devices</button>
-      <button onclick="goOffline()">📴 Go Offline</button>
-      <button onclick="goOnline()">📶 Go Online</button>
-    </div>
-  </div>
+<div class="float-toolbar" id="toolbar-drawing">
+  <button onclick="drawUndo()" id="btn-undo" title="Undo">↩</button>
+  <button onclick="drawRedo()" id="btn-redo" title="Redo">↪</button>
+  <div class="separator"></div>
+  <button onclick="addRect()" title="Rectangle">▭</button>
+  <button onclick="addCircle()" title="Ellipse">◯</button>
+  <button onclick="addLine()" title="Line">╱</button>
+  <button onclick="randomizeColors()" title="Recolor">🎨</button>
+  <div class="separator"></div>
+  <button class="danger-tool" onclick="deleteDrawingSelected()" title="Delete">✕</button>
 </div>
 
-<!-- ===== COLUMN SECTIONS ===== -->
-<div class="demo-section" id="columns-section">
-  <h2><span class="icon">📊</span> Recursive Column Sections</h2>
-  <p class="subtitle">Nested lane-based layouts — sections can contain other sections for recursive column nesting</p>
-
-  <div class="toolbar">
-    <button class="primary" onclick="addTwoColumns()">Add 2-Column Section</button>
-    <button onclick="addThreeColumns()">Add 3-Column Section</button>
-    <button onclick="addNestedSection()">Add Nested Section</button>
-  </div>
-
-  <div id="columns-area">
-    <div class="empty-state-bordered">
-      Click a button above to create column layouts
-    </div>
-  </div>
+<div class="float-toolbar" id="toolbar-comments">
+  <button onclick="addCommentA()" title="Alice comments">👩 Alice</button>
+  <button onclick="addCommentB()" title="Bob comments">👨 Bob</button>
+  <div class="separator"></div>
+  <button onclick="syncComments()" title="Sync">🔄 sync</button>
+  <button onclick="goOffline()" title="Go offline">📴</button>
+  <button onclick="goOnline()" title="Go online">📶</button>
 </div>
 
-<!-- ===== EXPORT/IMPORT ===== -->
-<div class="demo-section" id="export-section">
-  <h2><span class="icon">📦</span> Export / Import (.paperlike bundle)</h2>
-  <p class="subtitle">Export document as a .paperlike zip bundle with body.json, drawings, comments, and manifest — then re-import to verify state continuity</p>
-
-  <div class="toolbar">
-    <button class="success" onclick="exportBundle()">📤 Export Bundle</button>
-    <button class="primary" onclick="reimportBundle()">📥 Re-import & Verify</button>
-  </div>
-
-  <div class="export-preview" id="export-preview">
-    Click "Export Bundle" to generate the .paperlike manifest and see the serialized document state.
-  </div>
+<div class="float-toolbar" id="toolbar-columns">
+  <button onclick="addTwoColumns()">2 columns</button>
+  <button onclick="addThreeColumns()">3 columns</button>
+  <button onclick="addNestedSection()">nested</button>
 </div>
 
-</main>
+<div class="float-toolbar" id="toolbar-export">
+  <button onclick="exportBundle()">📤 export</button>
+  <button onclick="reimportBundle()">📥 re-import</button>
+</div>
 
 <script>
 // =========================================================================
-// PAPERLIKE DEMO — Inline implementation using library concepts
+// PAPERLIKE DEMO — Obsidian + Excalidraw inspired
 // =========================================================================
 
-// --- Branded ID helpers (mirrors src/types/ids.ts) ---
+// --- Navigation ---
+let currentPage = 'editor';
+
+function showPage(name) {
+  currentPage = name;
+  document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.sidebar-item').forEach(s => {
+    s.classList.toggle('active', s.dataset.page === name);
+  });
+  // Show correct floating toolbar
+  document.querySelectorAll('.float-toolbar').forEach(t => t.classList.remove('visible'));
+  const tb = document.getElementById('toolbar-' + name);
+  if (tb) tb.classList.add('visible');
+}
+
+// --- Branded ID helpers ---
 let idCounter = 0;
 const makeId = (prefix) => `${prefix}-${++idCounter}`;
 
@@ -631,8 +776,6 @@ let selectedElementId = null;
 let commentsOnline = true;
 let pendingA = [];
 let pendingB = [];
-
-// Comments CRDT simulation (simplified Yjs model)
 let commentsA = [];
 let commentsB = [];
 let commentCounterA = 0;
@@ -668,37 +811,36 @@ const sampleHeadings = [
 // ===== BLOCK EDITOR =====
 
 function renderBlocks() {
-  const el = document.getElementById('block-list');
+  const el = document.getElementById('block-editor');
   if (blocks.length === 0) {
-    el.innerHTML = '<div class="empty-state">Click a button above to add blocks to the document</div>';
+    el.innerHTML = '<div class="empty">start typing — or use the toolbar to add blocks</div>';
   } else {
     el.innerHTML = blocks.map(b => {
-      const selected = b.id === selectedBlockId ? ' selected' : '';
-      let content = '';
+      const sel = b.id === selectedBlockId ? ' selected' : '';
+      let inner = '';
       switch (b.type) {
         case 'paragraph':
-          content = `<div>${b.text}</div>`;
+          inner = `<p>${b.text}</p>`;
           break;
         case 'heading':
-          content = `<h${b.level}>${b.text}</h${b.level}>`;
+          inner = `<h${b.level}>${b.text}</h${b.level}>`;
           break;
         case 'list':
           const tag = b.ordered ? 'ol' : 'ul';
-          content = `<${tag}>${b.items.map(i => `<li>${i}</li>`).join('')}</${tag}>`;
+          inner = `<${tag}>${b.items.map(i => `<li>${i}</li>`).join('')}</${tag}>`;
           break;
         case 'drawing_ref':
-          content = `<div style="color:var(--purple)">📎 Drawing: ${b.drawingId}</div>`;
+          inner = `<div class="drawing-embed">🖼 embedded drawing: ${b.drawingId}</div>`;
           break;
         case 'spacer':
-          content = `<div style="color:var(--muted);font-style:italic">— spacer —</div>`;
+          inner = `<div class="spacer-line"></div>`;
           break;
         case 'section':
-          content = `<div style="color:var(--danger)">⊞ Section (${b.layout.lanes.length} lanes)</div>`;
+          inner = `<span class="section-badge">⊞ section · ${b.layout.lanes.length} lanes</span>`;
           break;
       }
-      return `<div class="block-item${selected}" onclick="selectBlock('${b.id}')">
-        <span class="block-type-badge block-type-${b.type}">${b.type}</span>
-        <div class="block-content">${content}<div class="block-id">${b.id}</div></div>
+      return `<div class="block${sel}" onclick="selectBlock('${b.id}')">
+        <span class="handle">⠿</span>${inner}
       </div>`;
     }).join('');
   }
@@ -709,7 +851,7 @@ function renderBlocks() {
 function logBody(msg) {
   const el = document.getElementById('body-log');
   const time = new Date().toLocaleTimeString();
-  el.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span> <span class="log-op">${msg}</span></div>`;
+  el.innerHTML += `<div class="log-line"><span class="log-ts">${time}</span><span class="log-msg">${msg}</span></div>`;
   el.scrollTop = el.scrollHeight;
 }
 
@@ -736,9 +878,9 @@ function insertBlockAfter(block) {
 
 function addParagraph() {
   const text = sampleParas[Math.floor(Math.random() * sampleParas.length)];
-  const block = { id: makeId('para'), type: 'paragraph', text };
+  const block = { id: makeId('p'), type: 'paragraph', text };
   insertBlockAfter(block);
-  logBody(`insert_block: paragraph "${text.slice(0, 40)}..."`);
+  logBody(`insert paragraph`);
 }
 
 function addHeading() {
@@ -746,51 +888,43 @@ function addHeading() {
   const level = Math.ceil(Math.random() * 3);
   const block = { id: makeId('h'), type: 'heading', text, level };
   insertBlockAfter(block);
-  logBody(`insert_block: h${level} "${text}"`);
+  logBody(`insert h${level}: "${text}"`);
 }
 
 function addList() {
   const block = {
-    id: makeId('list'),
+    id: makeId('li'),
     type: 'list',
     items: ['First item', 'Second item', 'Third item'],
     ordered: Math.random() > 0.5
   };
   insertBlockAfter(block);
-  logBody(`insert_block: ${block.ordered ? 'ordered' : 'unordered'} list`);
+  logBody(`insert list`);
 }
 
 function addDrawingRef() {
-  const block = { id: makeId('dref'), type: 'drawing_ref', drawingId: 'drawing-e2e' };
+  const block = { id: makeId('dr'), type: 'drawing_ref', drawingId: 'drawing-e2e' };
   insertBlockAfter(block);
-  logBody(`insert_block: drawing_ref → drawing-e2e`);
+  logBody(`insert drawing ref`);
 }
 
 function addSpacer() {
-  const block = { id: makeId('spacer'), type: 'spacer' };
+  const block = { id: makeId('sp'), type: 'spacer' };
   insertBlockAfter(block);
-  logBody(`insert_block: spacer`);
+  logBody(`insert spacer`);
 }
 
 function updateSelected() {
   if (!selectedBlockId) return;
   const block = blocks.find(b => b.id === selectedBlockId);
   if (!block) return;
-  if (block.type === 'paragraph') {
-    const newText = prompt('Edit paragraph text:', block.text);
+  if (block.type === 'paragraph' || block.type === 'heading') {
+    const newText = prompt('Edit text:', block.text);
     if (newText !== null) {
       blocks = blocks.map(b => b.id === selectedBlockId ? { ...b, text: newText } : b);
       docVersion++;
       renderBlocks();
-      logBody(`update_block: "${newText.slice(0, 40)}..."`);
-    }
-  } else if (block.type === 'heading') {
-    const newText = prompt('Edit heading text:', block.text);
-    if (newText !== null) {
-      blocks = blocks.map(b => b.id === selectedBlockId ? { ...b, text: newText } : b);
-      docVersion++;
-      renderBlocks();
-      logBody(`update_block: heading "${newText}"`);
+      logBody(`update: "${newText.slice(0, 30)}…"`);
     }
   }
 }
@@ -802,36 +936,36 @@ function deleteSelected() {
   selectedBlockId = null;
   docVersion++;
   renderBlocks();
-  logBody(`delete_block: ${id}`);
+  logBody(`delete ${id}`);
 }
 
 function moveSelectedUp() {
   if (!selectedBlockId) return;
   const idx = blocks.findIndex(b => b.id === selectedBlockId);
   if (idx <= 0) return;
-  const newBlocks = [...blocks];
-  [newBlocks[idx - 1], newBlocks[idx]] = [newBlocks[idx], newBlocks[idx - 1]];
-  blocks = newBlocks;
+  const nb = [...blocks];
+  [nb[idx - 1], nb[idx]] = [nb[idx], nb[idx - 1]];
+  blocks = nb;
   docVersion++;
   renderBlocks();
-  logBody(`move_block: ${selectedBlockId} ↑`);
+  logBody(`move up`);
 }
 
 function moveSelectedDown() {
   if (!selectedBlockId) return;
   const idx = blocks.findIndex(b => b.id === selectedBlockId);
   if (idx === -1 || idx >= blocks.length - 1) return;
-  const newBlocks = [...blocks];
-  [newBlocks[idx], newBlocks[idx + 1]] = [newBlocks[idx + 1], newBlocks[idx]];
-  blocks = newBlocks;
+  const nb = [...blocks];
+  [nb[idx], nb[idx + 1]] = [nb[idx + 1], nb[idx]];
+  blocks = nb;
   docVersion++;
   renderBlocks();
-  logBody(`move_block: ${selectedBlockId} ↓`);
+  logBody(`move down`);
 }
 
 // ===== DRAWING CANVAS =====
 
-const colors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+const colors = ['#5b8af5', '#e64553', '#40a06c', '#df8e1d', '#8839ef', '#ea76cb', '#179299', '#fe640b'];
 
 function renderCanvas() {
   const canvas = document.getElementById('canvas-area');
@@ -839,29 +973,27 @@ function renderCanvas() {
     const sel = el.id === selectedElementId ? ' selected' : '';
     const color = el.strokeColor || colors[0];
     const bg = el.backgroundColor || 'transparent';
-    let shape = '';
     let borderRadius = '4px';
     if (el.type === 'ellipse') borderRadius = '50%';
     if (el.type === 'line') {
-      return `<div class="canvas-element${sel}"
-        data-id="${el.id}"
+      return `<div class="canvas-element${sel}" data-id="${el.id}"
         onclick="event.stopPropagation(); selectElement('${el.id}')"
-        style="left:${el.x}px; top:${el.y}px; width:${el.width}px; height:2px;
-        background:${color}; border:none; border-radius:0;
-        transform: rotate(${el.angle || 0}deg)">
-      </div>`;
+        style="left:${el.x}px;top:${el.y}px;width:${el.width}px;height:2px;
+        background:${color};border:none;border-radius:0;
+        transform:rotate(${el.angle || 0}deg)"></div>`;
     }
-    return `<div class="canvas-element${sel}"
-      data-id="${el.id}"
+    return `<div class="canvas-element${sel}" data-id="${el.id}"
       onclick="event.stopPropagation(); selectElement('${el.id}')"
-      style="left:${el.x}px; top:${el.y}px; width:${el.width}px; height:${el.height}px;
-      border-color:${color}; background:${bg}; border-radius:${borderRadius}">
-      <span style="color:${color}">${el.type === 'rectangle' ? '▭' : el.type === 'ellipse' ? '◯' : '╱'}</span>
+      style="left:${el.x}px;top:${el.y}px;width:${el.width}px;height:${el.height}px;
+      border-color:${color};background:${bg};border-radius:${borderRadius}">
+      <span style="color:${color};font-family:var(--font)">${el.type === 'rectangle' ? '▭' : '◯'}</span>
     </div>`;
   }).join('');
 
   document.getElementById('history-info').textContent =
     `cursor: ${historyState.undoCursor} / ${historyState.actionCount} actions`;
+  document.getElementById('elem-count').textContent =
+    `${drawingElements.length} elements`;
   document.getElementById('btn-undo').disabled = historyState.undoCursor < 0;
   document.getElementById('btn-redo').disabled = historyState.undoCursor >= historyState.actionCount - 1;
 }
@@ -869,7 +1001,7 @@ function renderCanvas() {
 function logDraw(msg) {
   const el = document.getElementById('draw-log');
   const time = new Date().toLocaleTimeString();
-  el.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span> <span class="log-op">${msg}</span></div>`;
+  el.innerHTML += `<div class="log-line"><span class="log-ts">${time}</span><span class="log-msg">${msg}</span></div>`;
   el.scrollTop = el.scrollHeight;
 }
 
@@ -878,11 +1010,7 @@ function selectElement(id) {
   renderCanvas();
 }
 
-function canvasClick(event) {
-  const rect = event.currentTarget.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-  // Deselect on canvas bg click
+function canvasClick() {
   selectedElementId = null;
   renderCanvas();
 }
@@ -891,24 +1019,24 @@ function addShapeAt(type) {
   const canvas = document.getElementById('canvas-area');
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
-  const size = type === 'line' ? { width: 80 + Math.random() * 100, height: 0 } : { width: 60 + Math.random() * 80, height: 40 + Math.random() * 60 };
-  const x = 20 + Math.random() * (w - size.width - 40);
-  const y = 20 + Math.random() * (h - (size.height || 20) - 40);
+  const size = type === 'line'
+    ? { width: 80 + Math.random() * 120, height: 0 }
+    : { width: 60 + Math.random() * 100, height: 40 + Math.random() * 80 };
+  const x = 30 + Math.random() * (w - size.width - 60);
+  const y = 30 + Math.random() * (h - (size.height || 20) - 60);
   const color = colors[Math.floor(Math.random() * colors.length)];
-  const bg = Math.random() > 0.5 ? color + '20' : 'transparent';
+  const bg = Math.random() > 0.4 ? color + '18' : 'transparent';
 
   const el = {
-    id: makeId('elem'),
+    id: makeId('el'),
     type,
-    x: Math.round(x),
-    y: Math.round(y),
+    x: Math.round(x), y: Math.round(y),
     ...size,
     strokeColor: color,
     backgroundColor: bg,
-    angle: type === 'line' ? Math.round(Math.random() * 45 - 22) : 0,
+    angle: type === 'line' ? Math.round(Math.random() * 40 - 20) : 0,
   };
 
-  // Create action with forward/inverse patches
   const action = {
     drawingId: 'drawing-e2e',
     historyGroupId: makeId('hg'),
@@ -917,18 +1045,13 @@ function addShapeAt(type) {
     timestamp: Date.now(),
   };
 
-  // Truncate redo stack
   drawingActions = drawingActions.slice(0, historyState.undoCursor + 1);
   drawingActions.push(action);
   drawingElements.push(el);
-  historyState = {
-    undoCursor: drawingActions.length - 1,
-    actionCount: drawingActions.length,
-  };
-
+  historyState = { undoCursor: drawingActions.length - 1, actionCount: drawingActions.length };
   selectedElementId = el.id;
   renderCanvas();
-  logDraw(`add_element: ${type} at (${el.x}, ${el.y}) — ${el.id}`);
+  logDraw(`add ${type} at (${el.x}, ${el.y})`);
 }
 
 function addRect() { addShapeAt('rectangle'); }
@@ -937,215 +1060,148 @@ function addLine() { addShapeAt('line'); }
 
 function randomizeColors() {
   if (drawingElements.length === 0) return;
-  const patches = [];
-  const inversePatches = [];
+  const fwd = [], inv = [];
   drawingElements = drawingElements.map(el => {
-    const newColor = colors[Math.floor(Math.random() * colors.length)];
-    const newBg = Math.random() > 0.5 ? newColor + '20' : 'transparent';
-    inversePatches.push({ type: 'update_element', elementId: el.id, patch: { strokeColor: el.strokeColor, backgroundColor: el.backgroundColor } });
-    patches.push({ type: 'update_element', elementId: el.id, patch: { strokeColor: newColor, backgroundColor: newBg } });
-    return { ...el, strokeColor: newColor, backgroundColor: newBg };
+    const nc = colors[Math.floor(Math.random() * colors.length)];
+    const nb = Math.random() > 0.4 ? nc + '18' : 'transparent';
+    inv.push({ type: 'update_element', elementId: el.id, patch: { strokeColor: el.strokeColor, backgroundColor: el.backgroundColor } });
+    fwd.push({ type: 'update_element', elementId: el.id, patch: { strokeColor: nc, backgroundColor: nb } });
+    return { ...el, strokeColor: nc, backgroundColor: nb };
   });
-
-  const action = {
-    drawingId: 'drawing-e2e',
-    historyGroupId: makeId('hg'),
-    forward: patches,
-    inverse: inversePatches,
-    timestamp: Date.now(),
-  };
+  const action = { drawingId: 'drawing-e2e', historyGroupId: makeId('hg'), forward: fwd, inverse: inv, timestamp: Date.now() };
   drawingActions = drawingActions.slice(0, historyState.undoCursor + 1);
   drawingActions.push(action);
   historyState = { undoCursor: drawingActions.length - 1, actionCount: drawingActions.length };
   renderCanvas();
-  logDraw(`update_element: recolored ${drawingElements.length} elements`);
+  logDraw(`recolored ${drawingElements.length} elements`);
 }
 
 function deleteDrawingSelected() {
   if (!selectedElementId) return;
   const el = drawingElements.find(e => e.id === selectedElementId);
   if (!el) return;
-
   const action = {
-    drawingId: 'drawing-e2e',
-    historyGroupId: makeId('hg'),
+    drawingId: 'drawing-e2e', historyGroupId: makeId('hg'),
     forward: [{ type: 'delete_element', elementId: el.id }],
     inverse: [{ type: 'add_element', element: el }],
     timestamp: Date.now(),
   };
-
   drawingActions = drawingActions.slice(0, historyState.undoCursor + 1);
   drawingActions.push(action);
   drawingElements = drawingElements.filter(e => e.id !== selectedElementId);
   historyState = { undoCursor: drawingActions.length - 1, actionCount: drawingActions.length };
   selectedElementId = null;
   renderCanvas();
-  logDraw(`delete_element: ${el.id}`);
+  logDraw(`deleted element`);
+}
+
+function applyPatches(patches) {
+  patches.forEach(patch => {
+    switch (patch.type) {
+      case 'add_element': drawingElements.push(patch.element); break;
+      case 'delete_element': drawingElements = drawingElements.filter(e => e.id !== patch.elementId); break;
+      case 'update_element': drawingElements = drawingElements.map(e => e.id === patch.elementId ? { ...e, ...patch.patch } : e); break;
+    }
+  });
 }
 
 function drawUndo() {
   if (historyState.undoCursor < 0) return;
-  const action = drawingActions[historyState.undoCursor];
-  if (!action) return;
-
-  // Apply inverse patches
-  action.inverse.forEach(patch => {
-    switch (patch.type) {
-      case 'add_element':
-        drawingElements.push(patch.element);
-        break;
-      case 'delete_element':
-        drawingElements = drawingElements.filter(e => e.id !== patch.elementId);
-        break;
-      case 'update_element':
-        drawingElements = drawingElements.map(e => e.id === patch.elementId ? { ...e, ...patch.patch } : e);
-        break;
-    }
-  });
-
+  const a = drawingActions[historyState.undoCursor];
+  if (!a) return;
+  applyPatches(a.inverse);
   historyState = { ...historyState, undoCursor: historyState.undoCursor - 1 };
   renderCanvas();
-  logDraw(`undo → cursor: ${historyState.undoCursor}`);
+  logDraw(`undo → ${historyState.undoCursor}`);
 }
 
 function drawRedo() {
   if (historyState.undoCursor >= historyState.actionCount - 1) return;
-  const action = drawingActions[historyState.undoCursor + 1];
-  if (!action) return;
-
-  // Apply forward patches
-  action.forward.forEach(patch => {
-    switch (patch.type) {
-      case 'add_element':
-        drawingElements.push(patch.element);
-        break;
-      case 'delete_element':
-        drawingElements = drawingElements.filter(e => e.id !== patch.elementId);
-        break;
-      case 'update_element':
-        drawingElements = drawingElements.map(e => e.id === patch.elementId ? { ...e, ...patch.patch } : e);
-        break;
-    }
-  });
-
+  const a = drawingActions[historyState.undoCursor + 1];
+  if (!a) return;
+  applyPatches(a.forward);
   historyState = { ...historyState, undoCursor: historyState.undoCursor + 1 };
   renderCanvas();
-  logDraw(`redo → cursor: ${historyState.undoCursor}`);
+  logDraw(`redo → ${historyState.undoCursor}`);
 }
 
-// ===== COMMENTS CRDT =====
+// ===== COMMENTS =====
 
 function renderComments() {
   renderCommentList('comments-a', commentsA);
   renderCommentList('comments-b', commentsB);
 }
 
-function renderCommentList(containerId, comments) {
-  const el = document.getElementById(containerId);
+function renderCommentList(id, comments) {
+  const el = document.getElementById(id);
   if (comments.length === 0) {
-    el.innerHTML = '<div class="empty-state">No comments yet</div>';
+    el.innerHTML = '<div class="empty">no comments yet</div>';
     return;
   }
   el.innerHTML = comments.map(c => `
-    <div class="comment-item">
-      <span class="comment-author">${c.author}</span>
-      <span class="comment-anchor">on ${c.anchor}</span>
-      <div class="comment-text">${c.text}</div>
+    <div class="comment-thread">
+      <span class="comment-author-name">${c.author}</span>
+      <span class="comment-on">on ${c.anchor}</span>
+      <div class="comment-body">${c.text}</div>
     </div>
   `).join('');
 }
 
 function addCommentA() {
-  const text = sampleTexts[commentCounterA % sampleTexts.length];
-  commentCounterA++;
-  const comment = {
-    id: makeId('comment'),
-    author: '👩 Alice',
-    anchor: blocks.length > 0 ? blocks[Math.floor(Math.random() * blocks.length)].id : 'doc',
-    text,
-    createdAt: Date.now(),
-  };
-  commentsA.push(comment);
-  if (commentsOnline) {
-    commentsB.push(comment);
-  } else {
-    pendingA.push(comment);
-    document.getElementById('sync-a').className = 'sync-indicator pending';
-    document.getElementById('sync-a').textContent = 'Pending';
-  }
+  const text = sampleTexts[commentCounterA++ % sampleTexts.length];
+  const c = { id: makeId('c'), author: '👩 Alice', anchor: blocks.length > 0 ? blocks[Math.floor(Math.random() * blocks.length)].id : 'doc', text, createdAt: Date.now() };
+  commentsA.push(c);
+  if (commentsOnline) { commentsB.push(c); }
+  else { pendingA.push(c); document.getElementById('sync-a').className = 'sync-badge pending'; document.getElementById('sync-a').textContent = 'pending'; }
   renderComments();
 }
 
 function addCommentB() {
-  const text = sampleTexts[commentCounterB % sampleTexts.length];
-  commentCounterB++;
-  const comment = {
-    id: makeId('comment'),
-    author: '👨 Bob',
-    anchor: blocks.length > 0 ? blocks[Math.floor(Math.random() * blocks.length)].id : 'doc',
-    text,
-    createdAt: Date.now(),
-  };
-  commentsB.push(comment);
-  if (commentsOnline) {
-    commentsA.push(comment);
-  } else {
-    pendingB.push(comment);
-    document.getElementById('sync-b').className = 'sync-indicator pending';
-    document.getElementById('sync-b').textContent = 'Pending';
-  }
+  const text = sampleTexts[commentCounterB++ % sampleTexts.length];
+  const c = { id: makeId('c'), author: '👨 Bob', anchor: blocks.length > 0 ? blocks[Math.floor(Math.random() * blocks.length)].id : 'doc', text, createdAt: Date.now() };
+  commentsB.push(c);
+  if (commentsOnline) { commentsA.push(c); }
+  else { pendingB.push(c); document.getElementById('sync-b').className = 'sync-badge pending'; document.getElementById('sync-b').textContent = 'pending'; }
   renderComments();
 }
 
 function syncComments() {
-  // Merge pending from A → B and B → A
-  pendingA.forEach(c => {
-    if (!commentsB.find(x => x.id === c.id)) commentsB.push(c);
-  });
-  pendingB.forEach(c => {
-    if (!commentsA.find(x => x.id === c.id)) commentsA.push(c);
-  });
-  pendingA = [];
-  pendingB = [];
-  document.getElementById('sync-a').className = 'sync-indicator synced';
-  document.getElementById('sync-a').textContent = 'Synced';
-  document.getElementById('sync-b').className = 'sync-indicator synced';
-  document.getElementById('sync-b').textContent = 'Synced';
+  pendingA.forEach(c => { if (!commentsB.find(x => x.id === c.id)) commentsB.push(c); });
+  pendingB.forEach(c => { if (!commentsA.find(x => x.id === c.id)) commentsA.push(c); });
+  pendingA = []; pendingB = [];
+  document.getElementById('sync-a').className = 'sync-badge synced'; document.getElementById('sync-a').textContent = 'synced';
+  document.getElementById('sync-b').className = 'sync-badge synced'; document.getElementById('sync-b').textContent = 'synced';
   commentsOnline = true;
   renderComments();
 }
 
 function goOffline() {
   commentsOnline = false;
-  document.getElementById('sync-a').className = 'sync-indicator pending';
-  document.getElementById('sync-a').textContent = 'Offline';
-  document.getElementById('sync-b').className = 'sync-indicator pending';
-  document.getElementById('sync-b').textContent = 'Offline';
+  document.getElementById('sync-a').className = 'sync-badge offline'; document.getElementById('sync-a').textContent = 'offline';
+  document.getElementById('sync-b').className = 'sync-badge offline'; document.getElementById('sync-b').textContent = 'offline';
 }
 
-function goOnline() {
-  syncComments();
-}
+function goOnline() { syncComments(); }
 
-// ===== COLUMN SECTIONS =====
+// ===== COLUMNS =====
 
 let columnSections = [];
 
 function renderColumns() {
   const el = document.getElementById('columns-area');
   if (columnSections.length === 0) {
-    el.innerHTML = '<div class="empty-state-bordered">Click a button above to create column layouts</div>';
+    el.innerHTML = '<div class="empty-dashed">add a column layout below</div>';
     return;
   }
-  el.innerHTML = columnSections.map(sec => renderSection(sec)).join('');
+  el.innerHTML = columnSections.map(renderSection).join('');
 }
 
-function renderSection(section) {
-  return `<div class="columns-demo" style="margin-bottom: 12px;">
-    ${section.lanes.map(lane => `
-      <div class="lane">
-        <div class="lane-header">${lane.name}</div>
-        ${lane.blocks.map(b => `<div class="lane-block">${b}</div>`).join('')}
+function renderSection(sec) {
+  return `<div class="columns-layout">
+    ${sec.lanes.map(lane => `
+      <div class="col-lane">
+        <div class="col-lane-label">${lane.name}</div>
+        ${lane.blocks.map(b => `<div class="col-lane-block">${b}</div>`).join('')}
         ${lane.nested ? renderSection(lane.nested) : ''}
       </div>
     `).join('')}
@@ -1153,82 +1209,41 @@ function renderSection(section) {
 }
 
 function addTwoColumns() {
-  columnSections.push({
-    id: makeId('sec'),
-    lanes: [
-      { name: 'Lane A', blocks: ['Introduction text goes here', 'With supporting details'] },
-      { name: 'Lane B', blocks: ['Sidebar content', 'Additional notes', 'Reference links'] },
-    ],
-  });
+  columnSections.push({ id: makeId('s'), lanes: [
+    { name: 'Lane A', blocks: ['Introduction text goes here', 'With supporting details'] },
+    { name: 'Lane B', blocks: ['Sidebar content', 'Additional notes', 'Reference links'] },
+  ]});
   renderColumns();
 }
 
 function addThreeColumns() {
-  columnSections.push({
-    id: makeId('sec'),
-    lanes: [
-      { name: 'Left', blocks: ['Navigation', 'Menu items'] },
-      { name: 'Center', blocks: ['Main content area', 'Primary article text', 'With multiple paragraphs'] },
-      { name: 'Right', blocks: ['Related articles', 'Tags & categories'] },
-    ],
-  });
+  columnSections.push({ id: makeId('s'), lanes: [
+    { name: 'Left', blocks: ['Navigation', 'Menu items'] },
+    { name: 'Center', blocks: ['Main content area', 'Primary article text', 'With multiple paragraphs'] },
+    { name: 'Right', blocks: ['Related articles', 'Tags & categories'] },
+  ]});
   renderColumns();
 }
 
 function addNestedSection() {
-  columnSections.push({
-    id: makeId('sec'),
-    lanes: [
-      {
-        name: 'Outer Left',
-        blocks: ['Outer content'],
-        nested: {
-          id: makeId('sec'),
-          lanes: [
-            { name: 'Inner A', blocks: ['Nested block 1'] },
-            { name: 'Inner B', blocks: ['Nested block 2', 'More nesting'] },
-          ],
-        },
-      },
-      { name: 'Outer Right', blocks: ['Right column', 'Content here'] },
-    ],
-  });
+  columnSections.push({ id: makeId('s'), lanes: [
+    { name: 'Outer Left', blocks: ['Outer content'], nested: { id: makeId('s'), lanes: [
+      { name: 'Inner A', blocks: ['Nested block 1'] },
+      { name: 'Inner B', blocks: ['Nested block 2', 'More nesting'] },
+    ]}},
+    { name: 'Outer Right', blocks: ['Right column', 'Content here'] },
+  ]});
   renderColumns();
 }
 
 // ===== EXPORT =====
 
 function exportBundle() {
-  const manifest = {
-    version: '1.0',
-    docId: 'doc-demo',
-    createdAt: new Date().toISOString(),
-    drawingIds: ['drawing-e2e'],
-  };
+  const manifest = { version: '1.0', docId: 'doc-demo', createdAt: new Date().toISOString(), drawingIds: ['drawing-e2e'] };
+  const bodySnapshot = { docId: 'doc-demo', version: docVersion, blocks };
+  const drawingScene = { drawingId: 'drawing-e2e', elements: drawingElements, appState: drawingAppState, files: drawingFiles };
 
-  const bodySnapshot = {
-    docId: 'doc-demo',
-    version: docVersion,
-    blocks: blocks,
-  };
-
-  const drawingScene = {
-    drawingId: 'drawing-e2e',
-    elements: drawingElements,
-    appState: drawingAppState,
-    files: drawingFiles,
-  };
-
-  const bundle = {
-    'manifest.json': manifest,
-    'body.json': bodySnapshot,
-    'drawings/drawing-e2e.scene.json': drawingScene,
-    'drawings/drawing-e2e.history.jsonl': drawingActions.map(a => JSON.stringify(a)).join('\n'),
-    'drawings/drawing-e2e.history_state.json': historyState,
-    'comments_count': commentsA.length,
-  };
-
-  const preview = `📦 .paperlike Bundle Contents
+  const preview = `📦 .paperlike bundle
 ${'═'.repeat(50)}
 
 📋 manifest.json
@@ -1243,86 +1258,61 @@ ${JSON.stringify(drawingScene, null, 2).slice(0, 400)}${drawingElements.length >
 📜 drawings/drawing-e2e.history.jsonl (${drawingActions.length} actions)
 ${drawingActions.slice(0, 2).map(a => JSON.stringify(a)).join('\n')}${drawingActions.length > 2 ? '\n...' : ''}
 
-⏱ drawings/drawing-e2e.history_state.json
+⏱ history_state.json
 ${JSON.stringify(historyState, null, 2)}
 
-💬 comments: ${commentsA.length} comments on device A
-`;
+💬 comments: ${commentsA.length} on device A`;
 
   document.getElementById('export-preview').textContent = preview;
 }
 
 function reimportBundle() {
   if (blocks.length === 0 && drawingElements.length === 0) {
-    document.getElementById('export-preview').textContent = '⚠️ Nothing to re-import. Add some blocks and drawing elements first, then export.';
+    document.getElementById('export-preview').textContent = '⚠️ nothing to re-import — add content first';
     return;
   }
-
-  // Simulate serialization round-trip
-  const serializedBody = JSON.stringify({ docId: 'doc-demo', version: docVersion, blocks });
-  const serializedScene = JSON.stringify({ drawingId: 'drawing-e2e', elements: drawingElements, appState: drawingAppState, files: drawingFiles });
-  const serializedHistory = drawingActions.map(a => JSON.stringify(a)).join('\n');
-  const serializedHistoryState = JSON.stringify(historyState);
-
-  // Deserialize
-  const importedBody = JSON.parse(serializedBody);
-  const importedScene = JSON.parse(serializedScene);
-  const importedHistory = serializedHistory.trim() ? serializedHistory.trim().split('\n').map(l => JSON.parse(l)) : [];
-  const importedHistoryState = JSON.parse(serializedHistoryState);
-
-  // Verify
   const checks = [
-    { label: 'Body blocks count', expected: blocks.length, actual: importedBody.blocks.length },
-    { label: 'Doc version', expected: docVersion, actual: importedBody.version },
-    { label: 'Drawing elements count', expected: drawingElements.length, actual: importedScene.elements.length },
-    { label: 'History actions count', expected: drawingActions.length, actual: importedHistory.length },
-    { label: 'History cursor', expected: historyState.undoCursor, actual: importedHistoryState.undoCursor },
+    ['body blocks', blocks.length, JSON.parse(JSON.stringify(blocks)).length],
+    ['doc version', docVersion, JSON.parse(JSON.stringify(docVersion))],
+    ['drawing elements', drawingElements.length, JSON.parse(JSON.stringify(drawingElements)).length],
+    ['history actions', drawingActions.length, JSON.parse(JSON.stringify(drawingActions)).length],
+    ['history cursor', historyState.undoCursor, JSON.parse(JSON.stringify(historyState)).undoCursor],
   ];
-
-  const allPassed = checks.every(c => c.expected === c.actual);
-
-  let result = `📥 Re-import Verification
-${'═'.repeat(50)}
-
-`;
-  checks.forEach(c => {
-    const pass = c.expected === c.actual;
-    result += `${pass ? '✅' : '❌'} ${c.label}: ${c.actual} ${pass ? '(matches)' : `(expected ${c.expected})`}\n`;
+  let r = `📥 re-import verification\n${'═'.repeat(50)}\n\n`;
+  let ok = true;
+  checks.forEach(([label, exp, act]) => {
+    const pass = exp === act;
+    if (!pass) ok = false;
+    r += `${pass ? '✅' : '❌'} ${label}: ${act} ${pass ? '(match)' : `(expected ${exp})`}\n`;
   });
-  result += `\n${allPassed ? '🎉 All checks passed — state continuity verified!' : '⚠️ Some checks failed'}`;
-
-  document.getElementById('export-preview').textContent = result;
+  r += `\n${ok ? '🎉 all checks passed — state continuity verified!' : '⚠️ some checks failed'}`;
+  document.getElementById('export-preview').textContent = r;
 }
 
-// ===== INITIALIZE =====
+// ===== INIT =====
 
-// Pre-populate with sample content
 function initializeDemo() {
-  // Add some initial blocks
   blocks = [
     { id: makeId('h'), type: 'heading', text: 'Welcome to Paperlike', level: 1 },
-    { id: makeId('para'), type: 'paragraph', text: 'Paperlike enables collaborative document editing with real-time sync, CRDT-based comments, and Excalidraw-compatible drawings.' },
-    { id: makeId('para'), type: 'paragraph', text: 'The block-based architecture supports paragraphs, headings, lists, and embedded drawings with persistent undo/redo.' },
-    { id: makeId('list'), type: 'list', items: ['Block editor with 6 block types', 'Drawing canvas with undo/redo', 'CRDT comments for offline collaboration', 'Recursive column sections', 'Export/import .paperlike bundles'], ordered: false },
-    { id: makeId('dref'), type: 'drawing_ref', drawingId: 'drawing-e2e' },
+    { id: makeId('p'), type: 'paragraph', text: 'Paperlike enables collaborative document editing with real-time sync, CRDT-based comments, and Excalidraw-compatible drawings.' },
+    { id: makeId('p'), type: 'paragraph', text: 'The block-based architecture supports paragraphs, headings, lists, and embedded drawings with persistent undo/redo.' },
+    { id: makeId('li'), type: 'list', items: ['Block editor with 6 block types', 'Drawing canvas with undo/redo', 'CRDT comments for offline collaboration', 'Recursive column sections', 'Export/import .paperlike bundles'], ordered: false },
+    { id: makeId('dr'), type: 'drawing_ref', drawingId: 'drawing-e2e' },
   ];
   docVersion = 5;
 
-  // Add some initial drawing elements
   addShapeAt('rectangle');
   addShapeAt('ellipse');
   addShapeAt('rectangle');
   addShapeAt('line');
   addShapeAt('ellipse');
 
-  // Add initial comments
   commentsA = [
     { id: makeId('c'), author: '👩 Alice', anchor: blocks[0].id, text: 'Great title!', createdAt: Date.now() - 60000 },
     { id: makeId('c'), author: '👨 Bob', anchor: blocks[1].id, text: 'Consider adding more detail about the sync protocol.', createdAt: Date.now() - 30000 },
   ];
   commentsB = [...commentsA];
 
-  // Add initial column section
   addTwoColumns();
 
   renderBlocks();
