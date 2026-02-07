@@ -9,8 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     /* ============================================================
-       PAPERLIKE — Obsidian + Excalidraw inspired UI
-       Hand-drawn Caveat font everywhere for paper-like feel
+       PAPERLIKE — Obsidian + Excalidraw inspired
+       Inline drawing blocks, keyboard-driven, minimal UI
        ============================================================ */
     :root {
       --font: 'Caveat', cursive;
@@ -35,17 +35,12 @@
       --canvas-dot: #ddd8d0;
       --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
       --shadow-md: 0 4px 20px rgba(0,0,0,0.1);
-      --shadow-lg: 0 8px 40px rgba(0,0,0,0.15);
       --radius: 12px;
       --radius-sm: 8px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html, body {
-      height: 100%;
-      overflow: hidden;
-    }
+    html, body { height: 100%; overflow: hidden; }
 
     body {
       font-family: var(--font);
@@ -55,7 +50,7 @@
       display: flex;
     }
 
-    /* ===== SIDEBAR (Obsidian-style) ===== */
+    /* ===== SIDEBAR ===== */
     .sidebar {
       width: 220px;
       background: var(--sidebar-bg);
@@ -71,523 +66,281 @@
       padding: 20px 18px 16px;
       font-size: 1.5rem;
       font-weight: 700;
-      letter-spacing: -0.02em;
       color: #fff;
       border-bottom: 1px solid #313244;
     }
 
-    .sidebar-nav {
-      flex: 1;
-      padding: 8px 8px;
-      overflow-y: auto;
-    }
+    .sidebar-nav { flex: 1; padding: 8px; overflow-y: auto; }
 
     .sidebar-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-size: 1.1rem;
-      color: var(--sidebar-text);
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 1.1rem; color: var(--sidebar-text);
       transition: background 0.15s;
     }
-
     .sidebar-item:hover { background: var(--sidebar-hover); }
-
-    .sidebar-item.active {
-      background: rgba(137,180,250,0.12);
-      color: var(--sidebar-active);
-      font-weight: 600;
-    }
-
-    .sidebar-item .nav-icon {
-      font-size: 1.2rem;
-      width: 24px;
-      text-align: center;
-      flex-shrink: 0;
-    }
-
-    .sidebar-divider {
-      height: 1px;
-      background: #313244;
-      margin: 8px 14px;
-    }
+    .sidebar-item.active { background: rgba(137,180,250,0.12); color: var(--sidebar-active); font-weight: 600; }
 
     .sidebar-section-label {
-      font-size: 0.85rem;
-      color: #6c7086;
-      padding: 8px 14px 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 600;
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #585b70; padding: 14px 14px 4px; font-weight: 600;
     }
 
-    /* ===== MAIN CONTENT ===== */
-    .main-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+    .sidebar-divider { height: 1px; background: #313244; margin: 6px 10px; }
+
+    .sidebar-shortcuts {
+      padding: 12px 16px; border-top: 1px solid #313244;
+      font-size: 0.8rem; color: #585b70; line-height: 1.8;
     }
+    .sidebar-shortcuts kbd {
+      background: #313244; color: #cdd6f4; padding: 1px 6px;
+      border-radius: 4px; font-family: var(--font); font-size: 0.8rem;
+    }
+
+    /* ===== MAIN AREA ===== */
+    .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
     .content-scroll {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0;
+      flex: 1; overflow-y: auto; padding: 40px 0;
+      scroll-behavior: smooth;
     }
 
-    .page-view {
-      display: none;
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 40px 48px 80px;
-      min-height: 100%;
-    }
+    .page-view { display: none; max-width: 780px; margin: 0 auto; padding: 0 32px; }
+    .page-view.active { display: block; }
 
-    .page-view.active {
-      display: block;
-    }
-
-    /* ===== FLOATING TOOLBAR ===== */
-    .float-toolbar {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 40px;
-      padding: 6px 10px;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      box-shadow: var(--shadow-lg);
-      z-index: 100;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s, transform 0.2s;
-    }
-
-    .float-toolbar.visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .float-toolbar button {
-      font-family: var(--font);
-      font-size: 1.15rem;
-      padding: 8px 14px;
-      border: none;
-      background: transparent;
-      color: var(--text);
-      cursor: pointer;
-      border-radius: 20px;
-      transition: background 0.12s;
-      white-space: nowrap;
-    }
-
-    .float-toolbar button:hover {
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-
-    .float-toolbar button.active-tool {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    .float-toolbar button.danger-tool:hover {
-      background: var(--red-soft);
-      color: var(--red);
-    }
-
-    .float-toolbar .separator {
-      width: 1px;
-      height: 24px;
-      background: var(--border);
-      margin: 0 4px;
-    }
-
-    /* ===== EDITOR PAGE ===== */
+    /* ===== EDITOR ===== */
     .editor-title {
-      font-size: 2.8rem;
-      font-weight: 700;
-      color: var(--text);
-      border: none;
-      outline: none;
-      width: 100%;
-      margin-bottom: 8px;
-      line-height: 1.15;
+      font-size: 3rem; font-weight: 700; line-height: 1.15;
+      margin-bottom: 4px; outline: none;
     }
 
     .editor-meta {
-      font-size: 1rem;
-      color: var(--muted);
-      margin-bottom: 32px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
+      display: flex; gap: 16px; font-size: 0.95rem; color: var(--muted);
+      margin-bottom: 28px; align-items: center;
     }
-
     .meta-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      display: inline-block;
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); margin-right: 4px; vertical-align: middle;
     }
 
-    .block-editor {
-      min-height: 200px;
-    }
+    /* ===== BLOCK EDITOR ===== */
+    .block-editor { min-height: 200px; }
 
     .block {
-      padding: 6px 0;
-      border-radius: var(--radius-sm);
-      cursor: text;
-      position: relative;
-      transition: background 0.12s;
+      position: relative; padding: 6px 12px 6px 32px;
+      border-radius: var(--radius-sm); cursor: text;
+      transition: background 0.12s; border: 2px solid transparent;
+      margin: 2px 0;
     }
-
-    .block:hover {
-      background: rgba(0,0,0,0.018);
-    }
-
-    .block.selected {
-      background: var(--accent-soft);
-    }
+    .block:hover { background: var(--accent-soft); }
+    .block.selected { border-color: var(--accent); background: var(--accent-soft); }
 
     .block .handle {
-      position: absolute;
-      left: -32px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--muted);
-      opacity: 0;
-      cursor: grab;
-      font-size: 1.1rem;
-      transition: opacity 0.15s;
+      position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 0.9rem; cursor: grab;
+      opacity: 0; transition: opacity 0.15s;
     }
-
     .block:hover .handle { opacity: 0.5; }
-    .block:hover .handle:hover { opacity: 1; }
 
-    .block p {
-      font-size: 1.35rem;
-      line-height: 1.7;
-      margin: 0;
-    }
-
-    .block h1 {
-      font-size: 2.4rem;
-      font-weight: 700;
-      line-height: 1.2;
-      margin: 20px 0 8px;
-    }
-
-    .block h2 {
-      font-size: 1.9rem;
-      font-weight: 600;
-      line-height: 1.3;
-      margin: 16px 0 6px;
-    }
-
-    .block h3 {
-      font-size: 1.6rem;
-      font-weight: 600;
-      line-height: 1.35;
-      margin: 12px 0 4px;
-    }
-
-    .block ul, .block ol {
-      padding-left: 24px;
-      font-size: 1.3rem;
-      line-height: 1.8;
-    }
-
+    .block p { line-height: 1.6; }
+    .block h1 { font-size: 2.2rem; font-weight: 700; line-height: 1.2; }
+    .block h2 { font-size: 1.8rem; font-weight: 600; line-height: 1.25; }
+    .block h3 { font-size: 1.5rem; font-weight: 600; line-height: 1.3; }
+    .block ul, .block ol { padding-left: 24px; line-height: 1.7; }
     .block li { margin: 2px 0; }
 
-    .block .drawing-embed {
-      background: var(--surface);
-      border: 1px dashed var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-      text-align: center;
-      color: var(--purple);
-      font-size: 1.2rem;
-      margin: 12px 0;
+    .spacer-line {
+      height: 1px; background: var(--border); margin: 16px 0;
     }
 
-    .block .spacer-line {
-      height: 1px;
-      background: var(--border);
-      margin: 20px 0;
-    }
-
-    .block .section-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 14px;
-      background: var(--purple-soft);
-      color: var(--purple);
-      border-radius: 20px;
-      font-size: 1.1rem;
+    .section-badge {
+      display: inline-block; background: var(--purple-soft); color: var(--purple);
+      padding: 4px 14px; border-radius: 20px; font-size: 0.95rem;
     }
 
     .add-block-line {
-      padding: 12px 0;
-      text-align: center;
-      opacity: 0;
-      transition: opacity 0.2s;
+      text-align: center; padding: 12px 0;
     }
-
-    .block-editor:hover .add-block-line { opacity: 1; }
-
     .add-block-line button {
-      font-family: var(--font);
-      font-size: 1.1rem;
-      background: none;
-      border: 1px dashed var(--border);
-      color: var(--muted);
-      padding: 6px 18px;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.15s;
+      background: none; border: 2px dashed var(--border); color: var(--muted);
+      padding: 8px 24px; border-radius: var(--radius); cursor: pointer;
+      font-family: var(--font); font-size: 1.1rem; transition: all 0.15s;
     }
-
     .add-block-line button:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-soft);
+      border-color: var(--accent); color: var(--accent); background: var(--accent-soft);
     }
 
-    /* ===== DRAWING PAGE ===== */
-    .drawing-canvas {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      position: relative;
-      height: 500px;
-      overflow: hidden;
-      cursor: crosshair;
+    /* ===== INLINE DRAWING BLOCK ===== */
+    .drawing-block-wrapper {
+      position: relative; margin: 8px 0; border-radius: var(--radius);
+      border: 2px solid transparent; transition: border-color 0.15s;
+    }
+    .drawing-block-wrapper:hover { border-color: var(--border); }
+    .drawing-block-wrapper.editing { border-color: var(--accent); }
+
+    .drawing-canvas-inline {
+      position: relative; width: 100%; min-height: 120px;
+      background-color: #fefefe; border-radius: var(--radius-sm);
+      overflow: hidden; cursor: default;
       background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
-      background-size: 24px 24px;
+      background-size: 20px 20px;
     }
 
-    .canvas-element {
-      position: absolute;
-      border: 2px solid;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1rem;
-      cursor: move;
-      user-select: none;
-      transition: filter 0.15s;
+    .drawing-canvas-inline .canvas-element {
+      position: absolute; border: 2px solid; display: flex;
+      align-items: center; justify-content: center;
+      font-size: 1rem; transition: box-shadow 0.12s;
+      cursor: pointer; user-select: none;
+    }
+    .drawing-canvas-inline .canvas-element.selected {
+      box-shadow: 0 0 0 3px var(--accent);
     }
 
-    .canvas-element:hover {
-      filter: brightness(1.05);
+    .drawing-view-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      cursor: pointer; z-index: 2;
+    }
+    .drawing-block-wrapper.editing .drawing-view-overlay { display: none; }
+
+    .drawing-click-hint {
+      position: absolute; bottom: 8px; right: 12px;
+      font-size: 0.8rem; color: var(--muted); opacity: 0;
+      transition: opacity 0.15s; pointer-events: none; z-index: 3;
+    }
+    .drawing-block-wrapper:hover:not(.editing) .drawing-click-hint { opacity: 1; }
+
+    /* Drawing floating toolbar - only visible when editing */
+    .drawing-float-toolbar {
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      display: none; background: var(--surface); border-radius: 28px;
+      padding: 4px 8px; box-shadow: var(--shadow-md); z-index: 5;
+      gap: 2px; align-items: center;
+    }
+    .drawing-block-wrapper.editing .drawing-float-toolbar { display: flex; }
+
+    .drawing-float-toolbar button {
+      background: none; border: none; padding: 6px 10px; border-radius: 20px;
+      cursor: pointer; font-family: var(--font); font-size: 1rem;
+      color: var(--text); transition: background 0.12s;
+    }
+    .drawing-float-toolbar button:hover { background: var(--accent-soft); }
+    .drawing-float-toolbar button:disabled { opacity: 0.3; cursor: default; }
+    .drawing-float-toolbar button:disabled:hover { background: none; }
+    .drawing-float-toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+
+    .drawing-status-bar {
+      display: none; font-size: 0.8rem; color: var(--muted);
+      padding: 4px 12px; text-align: right;
+    }
+    .drawing-block-wrapper.editing .drawing-status-bar { display: block; }
+
+    /* Resize handle */
+    .drawing-resize-handle {
+      height: 8px; cursor: ns-resize; display: flex;
+      justify-content: center; align-items: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .drawing-block-wrapper:hover .drawing-resize-handle,
+    .drawing-block-wrapper.editing .drawing-resize-handle { opacity: 1; }
+
+    .drawing-resize-handle::after {
+      content: ''; width: 40px; height: 4px;
+      background: var(--border); border-radius: 2px;
     }
 
-    .canvas-element.selected {
-      box-shadow: 0 0 0 3px var(--accent), 0 0 0 5px rgba(91,138,245,0.2);
-    }
+    .empty { text-align: center; padding: 32px; color: var(--muted); font-size: 1.15rem; }
 
-    .drawing-status {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 12px;
-      font-size: 1.05rem;
-      color: var(--muted);
+    /* ===== LOG PANEL ===== */
+    .log-panel {
+      margin-top: 20px; background: #1e1e2e; color: #a6adc8;
+      border-radius: var(--radius); padding: 10px 14px;
+      font-size: 0.85rem; max-height: 140px; overflow-y: auto;
+      font-family: var(--font);
     }
+    .log-line { padding: 2px 0; display: flex; gap: 10px; }
+    .log-ts { color: #585b70; min-width: 70px; }
+    .log-msg { color: #cdd6f4; }
 
-    /* ===== COMMENTS PAGE ===== */
-    .comments-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
+    /* ===== COMMENTS ===== */
+    .page-title { font-size: 2.6rem; font-weight: 700; margin-bottom: 6px; }
+    .page-subtitle { font-size: 1.15rem; color: var(--muted); margin-bottom: 32px; line-height: 1.5; }
+
+    .two-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
     .device-panel {
-      flex: 1;
-      min-width: 0;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px; border: 1px solid var(--border);
     }
-
     .device-label {
-      font-size: 1.15rem;
-      font-weight: 600;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      font-weight: 600; font-size: 1.1rem; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
     }
-
     .sync-badge {
-      font-size: 0.9rem;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-weight: 600;
+      font-size: 0.75rem; padding: 2px 10px; border-radius: 12px; font-weight: 500;
     }
-
     .sync-badge.synced { background: var(--green-soft); color: var(--green); }
-    .sync-badge.offline { background: var(--red-soft); color: var(--red); }
     .sync-badge.pending { background: rgba(223,142,29,0.12); color: var(--orange); }
+    .sync-badge.offline { background: var(--red-soft); color: var(--red); }
 
     .comment-thread {
-      padding: 14px 0;
-      border-bottom: 1px solid var(--border);
+      padding: 10px 12px; border-radius: var(--radius-sm);
+      background: var(--bg); margin-bottom: 8px;
     }
+    .comment-author-name { font-weight: 600; }
+    .comment-on { font-size: 0.85rem; color: var(--muted); margin-left: 6px; }
+    .comment-body { margin-top: 4px; line-height: 1.5; font-size: 1.05rem; }
 
-    .comment-thread:last-child { border-bottom: none; }
-
-    .comment-author-name {
-      font-weight: 600;
-      color: var(--accent);
-      font-size: 1.15rem;
-    }
-
-    .comment-on {
-      font-size: 0.95rem;
-      color: var(--muted);
-      margin-left: 8px;
-    }
-
-    .comment-body {
-      margin-top: 4px;
-      font-size: 1.2rem;
-      line-height: 1.5;
-    }
-
-    .two-panel {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 32px;
-    }
-
-    .panel-divider {
-      width: 1px;
-      background: var(--border);
-    }
-
-    @media (max-width: 700px) {
-      .two-panel { grid-template-columns: 1fr; }
-    }
-
-    /* ===== COLUMNS PAGE ===== */
+    /* ===== COLUMNS ===== */
     .columns-layout {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-      display: flex;
-      gap: 16px;
-      margin-bottom: 20px;
+      display: flex; gap: 12px; margin-bottom: 16px;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 14px; border: 1px solid var(--border);
     }
-
     .col-lane {
-      flex: 1;
-      background: rgba(0,0,0,0.02);
-      border-radius: var(--radius-sm);
-      padding: 14px;
-      min-height: 80px;
+      flex: 1; padding: 10px; background: var(--bg);
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
     }
-
     .col-lane-label {
-      font-size: 0.9rem;
-      color: var(--muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 10px;
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--muted); margin-bottom: 8px; font-weight: 600;
     }
-
     .col-lane-block {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 8px 14px;
-      margin-bottom: 8px;
-      font-size: 1.15rem;
-    }
-
-    /* ===== EXPORT PAGE ===== */
-    .export-terminal {
-      background: #1e1e2e;
-      color: #cdd6f4;
-      border-radius: var(--radius);
-      padding: 20px 24px;
-      font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
-      max-height: 400px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      line-height: 1.6;
-    }
-
-    /* ===== EMPTY STATES ===== */
-    .empty {
-      text-align: center;
-      padding: 40px;
-      color: var(--muted);
-      font-size: 1.2rem;
+      padding: 8px 10px; background: var(--surface);
+      border-radius: var(--radius-sm); margin-bottom: 6px;
+      border: 1px solid var(--border); font-size: 1.05rem;
     }
 
     .empty-dashed {
-      text-align: center;
-      padding: 40px;
-      color: var(--muted);
-      font-size: 1.2rem;
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
+      text-align: center; padding: 40px; color: var(--muted); font-size: 1.2rem;
+      border: 2px dashed var(--border); border-radius: var(--radius);
     }
 
-    /* ===== PAGE TITLES ===== */
-    .page-title {
-      font-size: 2.6rem;
-      font-weight: 700;
-      margin-bottom: 6px;
+    /* ===== EXPORT ===== */
+    .export-terminal {
+      background: #1e1e2e; color: #a6adc8; border-radius: var(--radius);
+      padding: 20px; font-family: var(--font); font-size: 0.9rem;
+      white-space: pre-wrap; word-break: break-all; max-height: 500px;
+      overflow-y: auto; line-height: 1.5;
     }
 
-    .page-subtitle {
-      font-size: 1.15rem;
-      color: var(--muted);
-      margin-bottom: 32px;
-      line-height: 1.5;
+    /* ===== FLOATING TOOLBARS ===== */
+    .float-toolbar {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--surface); border-radius: 28px; padding: 6px 12px;
+      box-shadow: var(--shadow-md); display: none; gap: 4px;
+      align-items: center; z-index: 100; border: 1px solid var(--border);
     }
+    .float-toolbar.visible { display: flex; }
 
-    /* ===== LOG ===== */
-    .log-panel {
-      margin-top: 20px;
-      background: rgba(0,0,0,0.02);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 12px 16px;
-      max-height: 140px;
-      overflow-y: auto;
-      font-size: 1rem;
+    .float-toolbar button {
+      background: none; border: none; padding: 8px 14px;
+      border-radius: 20px; cursor: pointer; font-family: var(--font);
+      font-size: 1.05rem; color: var(--text); transition: background 0.12s;
+      white-space: nowrap;
     }
-
-    .log-line {
-      padding: 3px 0;
-      border-bottom: 1px solid rgba(0,0,0,0.04);
-      display: flex;
-      gap: 8px;
-    }
-
-    .log-line:last-child { border-bottom: none; }
-    .log-ts { color: var(--muted); font-size: 0.9rem; flex-shrink: 0; }
-    .log-msg { color: var(--accent); font-weight: 500; }
+    .float-toolbar button:hover { background: var(--accent-soft); }
+    .float-toolbar .separator { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
+    .float-toolbar .danger-tool:hover { background: var(--red-soft); color: var(--red); }
   </style>
 </head>
 <body>
@@ -599,9 +352,6 @@
     <div class="sidebar-section-label">Document</div>
     <div class="sidebar-item active" data-page="editor" onclick="showPage('editor')">
       <span class="nav-icon">📄</span> Editor
-    </div>
-    <div class="sidebar-item" data-page="drawing" onclick="showPage('drawing')">
-      <span class="nav-icon">🎨</span> Drawing
     </div>
     <div class="sidebar-item" data-page="comments" onclick="showPage('comments')">
       <span class="nav-icon">💬</span> Comments
@@ -617,6 +367,16 @@
       <span class="nav-icon">📦</span> Export
     </div>
   </nav>
+  <div class="sidebar-shortcuts">
+    <div><kbd>Ctrl</kbd>+<kbd>P</kbd> paragraph</div>
+    <div><kbd>Ctrl</kbd>+<kbd>H</kbd> heading</div>
+    <div><kbd>Ctrl</kbd>+<kbd>L</kbd> list</div>
+    <div><kbd>Ctrl</kbd>+<kbd>D</kbd> drawing</div>
+    <div><kbd>Ctrl</kbd>+<kbd>E</kbd> edit block</div>
+    <div><kbd>Del</kbd> delete block</div>
+    <div><kbd>↑</kbd>/<kbd>↓</kbd> move block</div>
+    <div><kbd>Esc</kbd> deselect / close</div>
+  </div>
 </div>
 
 <!-- ===== MAIN ===== -->
@@ -637,21 +397,6 @@
       </div>
       <div class="log-panel" id="body-log">
         <div class="log-line"><span class="log-ts">ready</span><span class="log-msg">editor initialized</span></div>
-      </div>
-    </div>
-
-    <!-- DRAWING PAGE -->
-    <div class="page-view" id="page-drawing">
-      <div class="page-title">Drawing Canvas</div>
-      <div class="page-subtitle">Excalidraw-compatible — add shapes, undo/redo, persistent history</div>
-      <div class="drawing-canvas" id="canvas-area" onclick="canvasClick(event)"></div>
-      <div class="drawing-status">
-        <span id="history-info">cursor: -1 / 0 actions</span>
-        <span>·</span>
-        <span id="elem-count">0 elements</span>
-      </div>
-      <div class="log-panel" id="draw-log">
-        <div class="log-line"><span class="log-ts">ready</span><span class="log-msg">canvas initialized</span></div>
       </div>
     </div>
 
@@ -692,28 +437,16 @@
 
 <!-- ===== FLOATING TOOLBARS ===== -->
 <div class="float-toolbar visible" id="toolbar-editor">
-  <button onclick="addParagraph()" title="Paragraph">¶</button>
-  <button onclick="addHeading()" title="Heading">H</button>
-  <button onclick="addList()" title="List">☰</button>
-  <button onclick="addDrawingRef()" title="Drawing">🖼</button>
+  <button onclick="addParagraph()" title="Paragraph (Ctrl+P)">¶</button>
+  <button onclick="addHeading()" title="Heading (Ctrl+H)">H</button>
+  <button onclick="addList()" title="List (Ctrl+L)">☰</button>
+  <button onclick="addDrawingBlock()" title="Drawing (Ctrl+D)">🖼</button>
   <button onclick="addSpacer()" title="Spacer">—</button>
   <div class="separator"></div>
-  <button onclick="updateSelected()" title="Edit">✎</button>
-  <button onclick="moveSelectedUp()" title="Move up">↑</button>
-  <button onclick="moveSelectedDown()" title="Move down">↓</button>
-  <button class="danger-tool" onclick="deleteSelected()" title="Delete">✕</button>
-</div>
-
-<div class="float-toolbar" id="toolbar-drawing">
-  <button onclick="drawUndo()" id="btn-undo" title="Undo">↩</button>
-  <button onclick="drawRedo()" id="btn-redo" title="Redo">↪</button>
-  <div class="separator"></div>
-  <button onclick="addRect()" title="Rectangle">▭</button>
-  <button onclick="addCircle()" title="Ellipse">◯</button>
-  <button onclick="addLine()" title="Line">╱</button>
-  <button onclick="randomizeColors()" title="Recolor">🎨</button>
-  <div class="separator"></div>
-  <button class="danger-tool" onclick="deleteDrawingSelected()" title="Delete">✕</button>
+  <button onclick="updateSelected()" title="Edit (Ctrl+E)">✎</button>
+  <button onclick="moveSelectedUp()" title="Move up (↑)">↑</button>
+  <button onclick="moveSelectedDown()" title="Move down (↓)">↓</button>
+  <button class="danger-tool" onclick="deleteSelected()" title="Delete (Del)">✕</button>
 </div>
 
 <div class="float-toolbar" id="toolbar-comments">
@@ -738,7 +471,7 @@
 
 <script>
 // =========================================================================
-// PAPERLIKE DEMO — Obsidian + Excalidraw inspired
+// PAPERLIKE DEMO — Inline drawing blocks, keyboard-driven
 // =========================================================================
 
 // --- Navigation ---
@@ -751,7 +484,6 @@ function showPage(name) {
   document.querySelectorAll('.sidebar-item').forEach(s => {
     s.classList.toggle('active', s.dataset.page === name);
   });
-  // Show correct floating toolbar
   document.querySelectorAll('.float-toolbar').forEach(t => t.classList.remove('visible'));
   const tb = document.getElementById('toolbar-' + name);
   if (tb) tb.classList.add('visible');
@@ -766,12 +498,8 @@ let blocks = [];
 let selectedBlockId = null;
 let docVersion = 0;
 
-let drawingElements = [];
-let drawingAppState = { viewBackgroundColor: '#ffffff' };
-let drawingFiles = {};
-let drawingActions = [];
-let historyState = { undoCursor: -1, actionCount: 0 };
-let selectedElementId = null;
+// Each drawing block has its own state keyed by drawingId
+const drawingStates = {};
 
 let commentsOnline = true;
 let pendingA = [];
@@ -808,6 +536,191 @@ const sampleHeadings = [
   "Conclusion",
 ];
 
+const colors = ['#5b8af5', '#e64553', '#40a06c', '#df8e1d', '#8839ef', '#ea76cb', '#179299', '#fe640b'];
+
+// ===== DRAWING STATE MANAGEMENT =====
+
+function getDrawingState(drawingId) {
+  if (!drawingStates[drawingId]) {
+    drawingStates[drawingId] = {
+      elements: [],
+      actions: [],
+      historyState: { undoCursor: -1, actionCount: 0 },
+      selectedElementId: null,
+      editing: false,
+      height: 220,
+    };
+  }
+  return drawingStates[drawingId];
+}
+
+function addShapeToDrawing(drawingId, type) {
+  const ds = getDrawingState(drawingId);
+  const wrapper = document.querySelector(`[data-drawing-id="${drawingId}"] .drawing-canvas-inline`);
+  const w = wrapper ? wrapper.clientWidth : 700;
+  const h = ds.height - 50;
+  const size = type === 'line'
+    ? { width: 80 + Math.random() * 120, height: 0 }
+    : { width: 60 + Math.random() * 100, height: 40 + Math.random() * 80 };
+  const x = 20 + Math.random() * (w - size.width - 40);
+  const y = 20 + Math.random() * Math.max(40, h - (size.height || 20) - 40);
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const bg = Math.random() > 0.4 ? color + '18' : 'transparent';
+
+  const el = {
+    id: makeId('el'),
+    type,
+    x: Math.round(x), y: Math.round(y),
+    ...size,
+    strokeColor: color,
+    backgroundColor: bg,
+    angle: type === 'line' ? Math.round(Math.random() * 40 - 20) : 0,
+  };
+
+  const action = {
+    drawingId,
+    historyGroupId: makeId('hg'),
+    forward: [{ type: 'add_element', element: el }],
+    inverse: [{ type: 'delete_element', elementId: el.id }],
+    timestamp: Date.now(),
+  };
+
+  ds.actions = ds.actions.slice(0, ds.historyState.undoCursor + 1);
+  ds.actions.push(action);
+  ds.elements.push(el);
+  ds.historyState = { undoCursor: ds.actions.length - 1, actionCount: ds.actions.length };
+  ds.selectedElementId = el.id;
+  renderDrawingBlock(drawingId);
+  logBody(`draw: add ${type} in ${drawingId}`);
+}
+
+function applyDrawingPatches(drawingId, patches) {
+  const ds = getDrawingState(drawingId);
+  patches.forEach(patch => {
+    switch (patch.type) {
+      case 'add_element': ds.elements.push(patch.element); break;
+      case 'delete_element': ds.elements = ds.elements.filter(e => e.id !== patch.elementId); break;
+      case 'update_element': ds.elements = ds.elements.map(e => e.id === patch.elementId ? { ...e, ...patch.patch } : e); break;
+    }
+  });
+}
+
+function drawingUndo(drawingId) {
+  const ds = getDrawingState(drawingId);
+  if (ds.historyState.undoCursor < 0) return;
+  const a = ds.actions[ds.historyState.undoCursor];
+  if (!a) return;
+  applyDrawingPatches(drawingId, a.inverse);
+  ds.historyState = { ...ds.historyState, undoCursor: ds.historyState.undoCursor - 1 };
+  renderDrawingBlock(drawingId);
+  logBody(`draw: undo in ${drawingId}`);
+}
+
+function drawingRedo(drawingId) {
+  const ds = getDrawingState(drawingId);
+  if (ds.historyState.undoCursor >= ds.historyState.actionCount - 1) return;
+  const a = ds.actions[ds.historyState.undoCursor + 1];
+  if (!a) return;
+  applyDrawingPatches(drawingId, a.forward);
+  ds.historyState = { ...ds.historyState, undoCursor: ds.historyState.undoCursor + 1 };
+  renderDrawingBlock(drawingId);
+  logBody(`draw: redo in ${drawingId}`);
+}
+
+function deleteDrawingElement(drawingId) {
+  const ds = getDrawingState(drawingId);
+  if (!ds.selectedElementId) return;
+  const el = ds.elements.find(e => e.id === ds.selectedElementId);
+  if (!el) return;
+  const action = {
+    drawingId, historyGroupId: makeId('hg'),
+    forward: [{ type: 'delete_element', elementId: el.id }],
+    inverse: [{ type: 'add_element', element: el }],
+    timestamp: Date.now(),
+  };
+  ds.actions = ds.actions.slice(0, ds.historyState.undoCursor + 1);
+  ds.actions.push(action);
+  ds.elements = ds.elements.filter(e => e.id !== ds.selectedElementId);
+  ds.historyState = { undoCursor: ds.actions.length - 1, actionCount: ds.actions.length };
+  ds.selectedElementId = null;
+  renderDrawingBlock(drawingId);
+  logBody(`draw: deleted element in ${drawingId}`);
+}
+
+function selectDrawingElement(drawingId, elementId) {
+  const ds = getDrawingState(drawingId);
+  ds.selectedElementId = ds.selectedElementId === elementId ? null : elementId;
+  renderDrawingBlock(drawingId);
+}
+
+function enterDrawingEdit(drawingId) {
+  // Close any other editing drawing
+  Object.keys(drawingStates).forEach(id => {
+    if (id !== drawingId && drawingStates[id].editing) {
+      drawingStates[id].editing = false;
+      drawingStates[id].selectedElementId = null;
+      renderDrawingBlock(id);
+    }
+  });
+  const ds = getDrawingState(drawingId);
+  ds.editing = true;
+  renderDrawingBlock(drawingId);
+}
+
+function exitDrawingEdit(drawingId) {
+  const ds = getDrawingState(drawingId);
+  ds.editing = false;
+  ds.selectedElementId = null;
+  renderDrawingBlock(drawingId);
+}
+
+// ===== RENDER DRAWING BLOCK =====
+
+function renderDrawingBlock(drawingId) {
+  const wrapper = document.querySelector(`[data-drawing-id="${drawingId}"]`);
+  if (!wrapper) return;
+  const ds = getDrawingState(drawingId);
+
+  wrapper.className = 'drawing-block-wrapper' + (ds.editing ? ' editing' : '');
+
+  const canvas = wrapper.querySelector('.drawing-canvas-inline');
+  canvas.style.height = ds.height + 'px';
+
+  // Render elements
+  canvas.querySelectorAll('.canvas-element').forEach(e => e.remove());
+  ds.elements.forEach(el => {
+    const sel = el.id === ds.selectedElementId ? ' selected' : '';
+    const color = el.strokeColor || colors[0];
+    const bg = el.backgroundColor || 'transparent';
+    const div = document.createElement('div');
+    div.className = 'canvas-element' + sel;
+    div.dataset.id = el.id;
+    div.onclick = (e) => { e.stopPropagation(); if (ds.editing) selectDrawingElement(drawingId, el.id); };
+
+    if (el.type === 'line') {
+      div.style.cssText = `left:${el.x}px;top:${el.y}px;width:${el.width}px;height:2px;background:${color};border:none;border-radius:0;transform:rotate(${el.angle || 0}deg)`;
+    } else {
+      const borderRadius = el.type === 'ellipse' ? '50%' : '4px';
+      div.style.cssText = `left:${el.x}px;top:${el.y}px;width:${el.width}px;height:${el.height}px;border-color:${color};background:${bg};border-radius:${borderRadius}`;
+      const span = document.createElement('span');
+      span.style.cssText = `color:${color};font-family:var(--font)`;
+      span.textContent = el.type === 'rectangle' ? '▭' : '◯';
+      div.appendChild(span);
+    }
+    canvas.appendChild(div);
+  });
+
+  // Update status bar
+  const statusBar = wrapper.querySelector('.drawing-status-bar');
+  statusBar.textContent = `${ds.elements.length} elements · cursor: ${ds.historyState.undoCursor} / ${ds.historyState.actionCount} actions`;
+
+  // Update undo/redo buttons
+  const undoBtn = wrapper.querySelector('.btn-undo');
+  const redoBtn = wrapper.querySelector('.btn-redo');
+  if (undoBtn) undoBtn.disabled = ds.historyState.undoCursor < 0;
+  if (redoBtn) redoBtn.disabled = ds.historyState.undoCursor >= ds.historyState.actionCount - 1;
+}
+
 // ===== BLOCK EDITOR =====
 
 function renderBlocks() {
@@ -830,7 +743,7 @@ function renderBlocks() {
           inner = `<${tag}>${b.items.map(i => `<li>${i}</li>`).join('')}</${tag}>`;
           break;
         case 'drawing_ref':
-          inner = `<div class="drawing-embed">🖼 embedded drawing: ${b.drawingId}</div>`;
+          inner = renderDrawingBlockHTML(b.drawingId);
           break;
         case 'spacer':
           inner = `<div class="spacer-line"></div>`;
@@ -839,13 +752,75 @@ function renderBlocks() {
           inner = `<span class="section-badge">⊞ section · ${b.layout.lanes.length} lanes</span>`;
           break;
       }
+
+      if (b.type === 'drawing_ref') {
+        return inner; // Drawing blocks render their own wrapper
+      }
+
       return `<div class="block${sel}" onclick="selectBlock('${b.id}')">
         <span class="handle">⠿</span>${inner}
       </div>`;
     }).join('');
+
+    // Attach drawing resize handlers after DOM update
+    blocks.forEach(b => {
+      if (b.type === 'drawing_ref') {
+        attachDrawingResize(b.drawingId);
+      }
+    });
   }
   document.getElementById('block-count').textContent = blocks.length;
   document.getElementById('doc-version').textContent = docVersion;
+}
+
+function renderDrawingBlockHTML(drawingId) {
+  const ds = getDrawingState(drawingId);
+  return `<div class="drawing-block-wrapper${ds.editing ? ' editing' : ''}" data-drawing-id="${drawingId}">
+    <div class="drawing-canvas-inline" style="height:${ds.height}px" onclick="if(getDrawingState('${drawingId}').editing){getDrawingState('${drawingId}').selectedElementId=null;renderDrawingBlock('${drawingId}')}">
+      <div class="drawing-view-overlay" onclick="event.stopPropagation();enterDrawingEdit('${drawingId}')"></div>
+      <div class="drawing-click-hint">click to edit drawing</div>
+    </div>
+    <div class="drawing-float-toolbar">
+      <button class="btn-undo" onclick="drawingUndo('${drawingId}')" title="Undo">↩</button>
+      <button class="btn-redo" onclick="drawingRedo('${drawingId}')" title="Redo">↪</button>
+      <div class="sep"></div>
+      <button onclick="addShapeToDrawing('${drawingId}','rectangle')" title="Rectangle">▭</button>
+      <button onclick="addShapeToDrawing('${drawingId}','ellipse')" title="Ellipse">◯</button>
+      <button onclick="addShapeToDrawing('${drawingId}','line')" title="Line">╱</button>
+      <div class="sep"></div>
+      <button onclick="deleteDrawingElement('${drawingId}')" title="Delete">✕</button>
+      <div class="sep"></div>
+      <button onclick="exitDrawingEdit('${drawingId}')" title="Done (Esc)">✓ done</button>
+    </div>
+    <div class="drawing-status-bar">${ds.elements.length} elements · cursor: ${ds.historyState.undoCursor} / ${ds.historyState.actionCount} actions</div>
+    <div class="drawing-resize-handle" data-drawing-id="${drawingId}"></div>
+  </div>`;
+}
+
+function attachDrawingResize(drawingId) {
+  const handle = document.querySelector(`.drawing-resize-handle[data-drawing-id="${drawingId}"]`);
+  if (!handle) return;
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    const ds = getDrawingState(drawingId);
+    const startY = e.clientY;
+    const startH = ds.height;
+
+    function onMove(ev) {
+      ds.height = Math.max(120, startH + (ev.clientY - startY));
+      const canvas = document.querySelector(`[data-drawing-id="${drawingId}"] .drawing-canvas-inline`);
+      if (canvas) canvas.style.height = ds.height + 'px';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // Re-render elements into the canvas after DOM creation
+  renderDrawingBlock(drawingId);
 }
 
 function logBody(msg) {
@@ -880,7 +855,7 @@ function addParagraph() {
   const text = sampleParas[Math.floor(Math.random() * sampleParas.length)];
   const block = { id: makeId('p'), type: 'paragraph', text };
   insertBlockAfter(block);
-  logBody(`insert paragraph`);
+  logBody('insert paragraph');
 }
 
 function addHeading() {
@@ -893,25 +868,26 @@ function addHeading() {
 
 function addList() {
   const block = {
-    id: makeId('li'),
-    type: 'list',
+    id: makeId('li'), type: 'list',
     items: ['First item', 'Second item', 'Third item'],
-    ordered: Math.random() > 0.5
+    ordered: Math.random() > 0.5,
   };
   insertBlockAfter(block);
-  logBody(`insert list`);
+  logBody('insert list');
 }
 
-function addDrawingRef() {
-  const block = { id: makeId('dr'), type: 'drawing_ref', drawingId: 'drawing-e2e' };
+function addDrawingBlock() {
+  const drawingId = makeId('drawing');
+  const block = { id: makeId('dr'), type: 'drawing_ref', drawingId };
+  getDrawingState(drawingId); // initialize state
   insertBlockAfter(block);
-  logBody(`insert drawing ref`);
+  logBody(`insert drawing block: ${drawingId}`);
 }
 
 function addSpacer() {
   const block = { id: makeId('sp'), type: 'spacer' };
   insertBlockAfter(block);
-  logBody(`insert spacer`);
+  logBody('insert spacer');
 }
 
 function updateSelected() {
@@ -926,6 +902,8 @@ function updateSelected() {
       renderBlocks();
       logBody(`update: "${newText.slice(0, 30)}…"`);
     }
+  } else if (block.type === 'drawing_ref') {
+    enterDrawingEdit(block.drawingId);
   }
 }
 
@@ -948,7 +926,7 @@ function moveSelectedUp() {
   blocks = nb;
   docVersion++;
   renderBlocks();
-  logBody(`move up`);
+  logBody('move up');
 }
 
 function moveSelectedDown() {
@@ -960,170 +938,55 @@ function moveSelectedDown() {
   blocks = nb;
   docVersion++;
   renderBlocks();
-  logBody(`move down`);
+  logBody('move down');
 }
 
-// ===== DRAWING CANVAS =====
+// ===== KEYBOARD SHORTCUTS =====
 
-const colors = ['#5b8af5', '#e64553', '#40a06c', '#df8e1d', '#8839ef', '#ea76cb', '#179299', '#fe640b'];
+document.addEventListener('keydown', (e) => {
+  // Don't intercept when typing in inputs/prompts
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-function renderCanvas() {
-  const canvas = document.getElementById('canvas-area');
-  canvas.innerHTML = drawingElements.map(el => {
-    const sel = el.id === selectedElementId ? ' selected' : '';
-    const color = el.strokeColor || colors[0];
-    const bg = el.backgroundColor || 'transparent';
-    let borderRadius = '4px';
-    if (el.type === 'ellipse') borderRadius = '50%';
-    if (el.type === 'line') {
-      return `<div class="canvas-element${sel}" data-id="${el.id}"
-        onclick="event.stopPropagation(); selectElement('${el.id}')"
-        style="left:${el.x}px;top:${el.y}px;width:${el.width}px;height:2px;
-        background:${color};border:none;border-radius:0;
-        transform:rotate(${el.angle || 0}deg)"></div>`;
+  if (currentPage === 'editor') {
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key.toLowerCase()) {
+        case 'p': e.preventDefault(); addParagraph(); return;
+        case 'h': e.preventDefault(); addHeading(); return;
+        case 'l': e.preventDefault(); addList(); return;
+        case 'd': e.preventDefault(); addDrawingBlock(); return;
+        case 'e': e.preventDefault(); updateSelected(); return;
+        case 'z':
+          // Check if any drawing is being edited
+          for (const id of Object.keys(drawingStates)) {
+            if (drawingStates[id].editing) {
+              e.preventDefault();
+              if (e.shiftKey) drawingRedo(id);
+              else drawingUndo(id);
+              return;
+            }
+          }
+          return;
+      }
     }
-    return `<div class="canvas-element${sel}" data-id="${el.id}"
-      onclick="event.stopPropagation(); selectElement('${el.id}')"
-      style="left:${el.x}px;top:${el.y}px;width:${el.width}px;height:${el.height}px;
-      border-color:${color};background:${bg};border-radius:${borderRadius}">
-      <span style="color:${color};font-family:var(--font)">${el.type === 'rectangle' ? '▭' : '◯'}</span>
-    </div>`;
-  }).join('');
 
-  document.getElementById('history-info').textContent =
-    `cursor: ${historyState.undoCursor} / ${historyState.actionCount} actions`;
-  document.getElementById('elem-count').textContent =
-    `${drawingElements.length} elements`;
-  document.getElementById('btn-undo').disabled = historyState.undoCursor < 0;
-  document.getElementById('btn-redo').disabled = historyState.undoCursor >= historyState.actionCount - 1;
-}
-
-function logDraw(msg) {
-  const el = document.getElementById('draw-log');
-  const time = new Date().toLocaleTimeString();
-  el.innerHTML += `<div class="log-line"><span class="log-ts">${time}</span><span class="log-msg">${msg}</span></div>`;
-  el.scrollTop = el.scrollHeight;
-}
-
-function selectElement(id) {
-  selectedElementId = selectedElementId === id ? null : id;
-  renderCanvas();
-}
-
-function canvasClick() {
-  selectedElementId = null;
-  renderCanvas();
-}
-
-function addShapeAt(type) {
-  const canvas = document.getElementById('canvas-area');
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  const size = type === 'line'
-    ? { width: 80 + Math.random() * 120, height: 0 }
-    : { width: 60 + Math.random() * 100, height: 40 + Math.random() * 80 };
-  const x = 30 + Math.random() * (w - size.width - 60);
-  const y = 30 + Math.random() * (h - (size.height || 20) - 60);
-  const color = colors[Math.floor(Math.random() * colors.length)];
-  const bg = Math.random() > 0.4 ? color + '18' : 'transparent';
-
-  const el = {
-    id: makeId('el'),
-    type,
-    x: Math.round(x), y: Math.round(y),
-    ...size,
-    strokeColor: color,
-    backgroundColor: bg,
-    angle: type === 'line' ? Math.round(Math.random() * 40 - 20) : 0,
-  };
-
-  const action = {
-    drawingId: 'drawing-e2e',
-    historyGroupId: makeId('hg'),
-    forward: [{ type: 'add_element', element: el }],
-    inverse: [{ type: 'delete_element', elementId: el.id }],
-    timestamp: Date.now(),
-  };
-
-  drawingActions = drawingActions.slice(0, historyState.undoCursor + 1);
-  drawingActions.push(action);
-  drawingElements.push(el);
-  historyState = { undoCursor: drawingActions.length - 1, actionCount: drawingActions.length };
-  selectedElementId = el.id;
-  renderCanvas();
-  logDraw(`add ${type} at (${el.x}, ${el.y})`);
-}
-
-function addRect() { addShapeAt('rectangle'); }
-function addCircle() { addShapeAt('ellipse'); }
-function addLine() { addShapeAt('line'); }
-
-function randomizeColors() {
-  if (drawingElements.length === 0) return;
-  const fwd = [], inv = [];
-  drawingElements = drawingElements.map(el => {
-    const nc = colors[Math.floor(Math.random() * colors.length)];
-    const nb = Math.random() > 0.4 ? nc + '18' : 'transparent';
-    inv.push({ type: 'update_element', elementId: el.id, patch: { strokeColor: el.strokeColor, backgroundColor: el.backgroundColor } });
-    fwd.push({ type: 'update_element', elementId: el.id, patch: { strokeColor: nc, backgroundColor: nb } });
-    return { ...el, strokeColor: nc, backgroundColor: nb };
-  });
-  const action = { drawingId: 'drawing-e2e', historyGroupId: makeId('hg'), forward: fwd, inverse: inv, timestamp: Date.now() };
-  drawingActions = drawingActions.slice(0, historyState.undoCursor + 1);
-  drawingActions.push(action);
-  historyState = { undoCursor: drawingActions.length - 1, actionCount: drawingActions.length };
-  renderCanvas();
-  logDraw(`recolored ${drawingElements.length} elements`);
-}
-
-function deleteDrawingSelected() {
-  if (!selectedElementId) return;
-  const el = drawingElements.find(e => e.id === selectedElementId);
-  if (!el) return;
-  const action = {
-    drawingId: 'drawing-e2e', historyGroupId: makeId('hg'),
-    forward: [{ type: 'delete_element', elementId: el.id }],
-    inverse: [{ type: 'add_element', element: el }],
-    timestamp: Date.now(),
-  };
-  drawingActions = drawingActions.slice(0, historyState.undoCursor + 1);
-  drawingActions.push(action);
-  drawingElements = drawingElements.filter(e => e.id !== selectedElementId);
-  historyState = { undoCursor: drawingActions.length - 1, actionCount: drawingActions.length };
-  selectedElementId = null;
-  renderCanvas();
-  logDraw(`deleted element`);
-}
-
-function applyPatches(patches) {
-  patches.forEach(patch => {
-    switch (patch.type) {
-      case 'add_element': drawingElements.push(patch.element); break;
-      case 'delete_element': drawingElements = drawingElements.filter(e => e.id !== patch.elementId); break;
-      case 'update_element': drawingElements = drawingElements.map(e => e.id === patch.elementId ? { ...e, ...patch.patch } : e); break;
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (selectedBlockId) { e.preventDefault(); deleteSelected(); return; }
     }
-  });
-}
 
-function drawUndo() {
-  if (historyState.undoCursor < 0) return;
-  const a = drawingActions[historyState.undoCursor];
-  if (!a) return;
-  applyPatches(a.inverse);
-  historyState = { ...historyState, undoCursor: historyState.undoCursor - 1 };
-  renderCanvas();
-  logDraw(`undo → ${historyState.undoCursor}`);
-}
+    if (e.key === 'ArrowUp' && e.altKey) { e.preventDefault(); moveSelectedUp(); return; }
+    if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); moveSelectedDown(); return; }
 
-function drawRedo() {
-  if (historyState.undoCursor >= historyState.actionCount - 1) return;
-  const a = drawingActions[historyState.undoCursor + 1];
-  if (!a) return;
-  applyPatches(a.forward);
-  historyState = { ...historyState, undoCursor: historyState.undoCursor + 1 };
-  renderCanvas();
-  logDraw(`redo → ${historyState.undoCursor}`);
-}
+    if (e.key === 'Escape') {
+      // Exit drawing edit mode first
+      for (const id of Object.keys(drawingStates)) {
+        if (drawingStates[id].editing) { exitDrawingEdit(id); return; }
+      }
+      selectedBlockId = null;
+      renderBlocks();
+      return;
+    }
+  }
+});
 
 // ===== COMMENTS =====
 
@@ -1239,9 +1102,18 @@ function addNestedSection() {
 // ===== EXPORT =====
 
 function exportBundle() {
-  const manifest = { version: '1.0', docId: 'doc-demo', createdAt: new Date().toISOString(), drawingIds: ['drawing-e2e'] };
+  const allDrawingIds = blocks.filter(b => b.type === 'drawing_ref').map(b => b.drawingId);
+  const manifest = { version: '1.0', docId: 'doc-demo', createdAt: new Date().toISOString(), drawingIds: allDrawingIds };
   const bodySnapshot = { docId: 'doc-demo', version: docVersion, blocks };
-  const drawingScene = { drawingId: 'drawing-e2e', elements: drawingElements, appState: drawingAppState, files: drawingFiles };
+
+  let drawingSections = '';
+  allDrawingIds.forEach(did => {
+    const ds = getDrawingState(did);
+    const scene = { drawingId: did, elements: ds.elements, appState: {}, files: {} };
+    drawingSections += `\n🎨 drawings/${did}.scene.json (${ds.elements.length} elements)\n${JSON.stringify(scene, null, 2).slice(0, 300)}${ds.elements.length > 2 ? '\n  ...' : ''}\n`;
+    drawingSections += `\n📜 drawings/${did}.history.jsonl (${ds.actions.length} actions)\n${ds.actions.slice(0, 2).map(a => JSON.stringify(a)).join('\n')}${ds.actions.length > 2 ? '\n...' : ''}\n`;
+    drawingSections += `\n⏱ drawings/${did}.history_state.json\n${JSON.stringify(ds.historyState, null, 2)}\n`;
+  });
 
   const preview = `📦 .paperlike bundle
 ${'═'.repeat(50)}
@@ -1251,33 +1123,28 @@ ${JSON.stringify(manifest, null, 2)}
 
 📄 body.json (${blocks.length} blocks, version ${docVersion})
 ${JSON.stringify(bodySnapshot, null, 2).slice(0, 500)}${blocks.length > 3 ? '\n  ...' : ''}
-
-🎨 drawings/drawing-e2e.scene.json (${drawingElements.length} elements)
-${JSON.stringify(drawingScene, null, 2).slice(0, 400)}${drawingElements.length > 2 ? '\n  ...' : ''}
-
-📜 drawings/drawing-e2e.history.jsonl (${drawingActions.length} actions)
-${drawingActions.slice(0, 2).map(a => JSON.stringify(a)).join('\n')}${drawingActions.length > 2 ? '\n...' : ''}
-
-⏱ history_state.json
-${JSON.stringify(historyState, null, 2)}
-
+${drawingSections}
 💬 comments: ${commentsA.length} on device A`;
 
   document.getElementById('export-preview').textContent = preview;
 }
 
 function reimportBundle() {
-  if (blocks.length === 0 && drawingElements.length === 0) {
+  if (blocks.length === 0) {
     document.getElementById('export-preview').textContent = '⚠️ nothing to re-import — add content first';
     return;
   }
+  const allDrawingIds = blocks.filter(b => b.type === 'drawing_ref').map(b => b.drawingId);
   const checks = [
     ['body blocks', blocks.length, JSON.parse(JSON.stringify(blocks)).length],
     ['doc version', docVersion, JSON.parse(JSON.stringify(docVersion))],
-    ['drawing elements', drawingElements.length, JSON.parse(JSON.stringify(drawingElements)).length],
-    ['history actions', drawingActions.length, JSON.parse(JSON.stringify(drawingActions)).length],
-    ['history cursor', historyState.undoCursor, JSON.parse(JSON.stringify(historyState)).undoCursor],
   ];
+  allDrawingIds.forEach(did => {
+    const ds = getDrawingState(did);
+    checks.push([`${did} elements`, ds.elements.length, JSON.parse(JSON.stringify(ds.elements)).length]);
+    checks.push([`${did} actions`, ds.actions.length, JSON.parse(JSON.stringify(ds.actions)).length]);
+    checks.push([`${did} cursor`, ds.historyState.undoCursor, JSON.parse(JSON.stringify(ds.historyState)).undoCursor]);
+  });
   let r = `📥 re-import verification\n${'═'.repeat(50)}\n\n`;
   let ok = true;
   checks.forEach(([label, exp, act]) => {
@@ -1292,20 +1159,43 @@ function reimportBundle() {
 // ===== INIT =====
 
 function initializeDemo() {
+  const d1 = makeId('drawing');
+  const d2 = makeId('drawing');
+
   blocks = [
     { id: makeId('h'), type: 'heading', text: 'Welcome to Paperlike', level: 1 },
-    { id: makeId('p'), type: 'paragraph', text: 'Paperlike enables collaborative document editing with real-time sync, CRDT-based comments, and Excalidraw-compatible drawings.' },
-    { id: makeId('p'), type: 'paragraph', text: 'The block-based architecture supports paragraphs, headings, lists, and embedded drawings with persistent undo/redo.' },
-    { id: makeId('li'), type: 'list', items: ['Block editor with 6 block types', 'Drawing canvas with undo/redo', 'CRDT comments for offline collaboration', 'Recursive column sections', 'Export/import .paperlike bundles'], ordered: false },
-    { id: makeId('dr'), type: 'drawing_ref', drawingId: 'drawing-e2e' },
+    { id: makeId('p'), type: 'paragraph', text: 'Paperlike is a collaborative document editor where text and drawings live side by side. Click on any drawing to edit it — shapes, undo/redo, and history are all per-drawing.' },
+    { id: makeId('dr'), type: 'drawing_ref', drawingId: d1 },
+    { id: makeId('p'), type: 'paragraph', text: 'Each drawing block has its own undo/redo history. You can resize drawings by dragging the handle at the bottom. Width automatically fills the available space.' },
+    { id: makeId('h'), type: 'heading', text: 'Architecture Overview', level: 2 },
+    { id: makeId('li'), type: 'list', items: [
+      'Block-based editor with 6 block types',
+      'Inline Excalidraw-style drawings',
+      'CRDT comments for offline collaboration',
+      'Recursive column sections',
+      'Export/import .paperlike bundles',
+    ], ordered: false },
+    { id: makeId('sp'), type: 'spacer' },
+    { id: makeId('h'), type: 'heading', text: 'Another Drawing Below', level: 3 },
+    { id: makeId('p'), type: 'paragraph', text: 'Multiple drawings can exist in a single document. Each one is independent with its own elements and history.' },
+    { id: makeId('dr'), type: 'drawing_ref', drawingId: d2 },
+    { id: makeId('p'), type: 'paragraph', text: 'Keyboard shortcuts make everything fast: Ctrl+D inserts a new drawing, Ctrl+P adds a paragraph, Ctrl+Z undoes within an active drawing, and Esc exits drawing edit mode.' },
   ];
-  docVersion = 5;
+  docVersion = 11;
 
-  addShapeAt('rectangle');
-  addShapeAt('ellipse');
-  addShapeAt('rectangle');
-  addShapeAt('line');
-  addShapeAt('ellipse');
+  // Add shapes to drawing 1
+  const ds1 = getDrawingState(d1);
+  ds1.height = 250;
+  for (let i = 0; i < 5; i++) addShapeToDrawing(d1, ['rectangle', 'ellipse', 'line'][i % 3]);
+
+  // Add shapes to drawing 2
+  const ds2 = getDrawingState(d2);
+  ds2.height = 180;
+  for (let i = 0; i < 3; i++) addShapeToDrawing(d2, ['ellipse', 'rectangle'][i % 2]);
+
+  // Exit edit mode for both drawings
+  exitDrawingEdit(d1);
+  exitDrawingEdit(d2);
 
   commentsA = [
     { id: makeId('c'), author: '👩 Alice', anchor: blocks[0].id, text: 'Great title!', createdAt: Date.now() - 60000 },
@@ -1316,7 +1206,6 @@ function initializeDemo() {
   addTwoColumns();
 
   renderBlocks();
-  renderCanvas();
   renderComments();
 }
 
