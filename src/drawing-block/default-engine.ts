@@ -1,11 +1,6 @@
 import type { DrawingElement, DrawingAppState, DrawingFiles } from "../types/drawing.js";
 import type { ElementId } from "../types/ids.js";
-import type {
-  DrawingEngine,
-  EngineSnapshot,
-  EngineSelection,
-  EngineEvents,
-} from "./engine.js";
+import type { DrawingEngine, EngineSnapshot, EngineSelection, EngineEvents } from "./engine.js";
 
 // ---------------------------------------------------------------------------
 // DefaultDrawingEngine — a plain in-memory implementation of DrawingEngine.
@@ -55,10 +50,7 @@ export class DefaultDrawingEngine implements DrawingEngine {
     return copy;
   }
 
-  updateElement(
-    elementId: ElementId,
-    patch: Partial<DrawingElement>,
-  ): DrawingElement | undefined {
+  updateElement(elementId: ElementId, patch: Partial<DrawingElement>): DrawingElement | undefined {
     const idx = this.findIndex(elementId);
     if (idx === -1) return undefined;
     const before = { ...this.elements[idx]! };

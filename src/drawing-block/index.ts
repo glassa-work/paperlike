@@ -1,9 +1,4 @@
-export type {
-  DrawingEngine,
-  EngineSnapshot,
-  EngineSelection,
-  EngineEvents,
-} from "./engine.js";
+export type { DrawingEngine, EngineSnapshot, EngineSelection, EngineEvents } from "./engine.js";
 
 export { DefaultDrawingEngine } from "./default-engine.js";
 

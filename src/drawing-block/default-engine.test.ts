@@ -61,7 +61,9 @@ describe("DefaultDrawingEngine", () => {
     it("preserves element id even if patch contains id", () => {
       const engine = new DefaultDrawingEngine();
       engine.addElement(makeElement("e1"));
-      engine.updateElement(createElementId("e1"), { id: createElementId("hacked") } as Partial<DrawingElement>);
+      engine.updateElement(createElementId("e1"), {
+        id: createElementId("hacked"),
+      } as Partial<DrawingElement>);
       expect(engine.getSnapshot().elements[0]?.id).toBe("e1");
     });
 
@@ -108,7 +110,7 @@ describe("DefaultDrawingEngine", () => {
   describe("upsertFiles", () => {
     it("merges files into state", () => {
       const engine = new DefaultDrawingEngine();
-      engine.upsertFiles({ "f1": { mimeType: "image/png", dataURL: "data:..." } });
+      engine.upsertFiles({ f1: { mimeType: "image/png", dataURL: "data:..." } });
       expect(engine.getSnapshot().files["f1"]?.mimeType).toBe("image/png");
     });
   });

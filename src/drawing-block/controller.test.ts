@@ -4,11 +4,7 @@ import { DefaultDrawingEngine } from "./default-engine.js";
 import type { DrawingScene } from "../types/drawing.js";
 import type { DrawingAction } from "../drawing/actions.js";
 import type { DrawingHistoryState } from "../drawing/history.js";
-import {
-  createDrawingId,
-  createElementId,
-  createHistoryGroupId,
-} from "../types/ids.js";
+import { createDrawingId, createElementId, createHistoryGroupId } from "../types/ids.js";
 import type { DrawingElement } from "../types/drawing.js";
 
 let groupCounter = 0;
