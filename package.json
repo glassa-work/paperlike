@@ -12,7 +12,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
@@ -21,13 +23,19 @@
     "format:fix": "prettier --write 'src/**/*.ts'",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/glassa-work/paperlike.git"
   },
-  "keywords": ["editor", "collaborative", "crdt", "drawing"],
+  "keywords": [
+    "editor",
+    "collaborative",
+    "crdt",
+    "drawing"
+  ],
   "author": "",
   "license": "ISC",
   "type": "module",
@@ -36,6 +44,7 @@
   },
   "homepage": "https://github.com/glassa-work/paperlike#readme",
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "@vitest/coverage-v8": "^4.0.18",
