@@ -1,0 +1,61 @@
+{
+  "name": "@paperlike/editor",
+  "version": "0.1.0",
+  "description": "Paperlike collaborative document editor library",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint 'src/**/*.ts'",
+    "format": "prettier --check 'src/**/*.ts'",
+    "format:fix": "prettier --write 'src/**/*.ts'",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "demo": "npx serve demo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/glassa-work/paperlike.git"
+  },
+  "keywords": [
+    "editor",
+    "collaborative",
+    "crdt",
+    "drawing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/glassa-work/paperlike/issues"
+  },
+  "homepage": "https://github.com/glassa-work/paperlike#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^9.39.2",
+    "prettier": "^3.8.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "yjs": "^13.6.29"
+  }
+}

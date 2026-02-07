@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paperlike</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       PAPERLIKE — Obsidian + Excalidraw inspired, contextual toolbar
+       Dot-grid paper background, single floating contextual toolbar
+       ============================================================ */
+    :root {
+      --font: 'Caveat', cursive;
+      --bg: #faf8f5;
+      --surface: #ffffff;
+      --sidebar-bg: #1e1e2e;
+      --sidebar-text: #cdd6f4;
+      --sidebar-active: #89b4fa;
+      --sidebar-hover: #313244;
+      --border: #e8e4de;
+      --text: #2c2c2c;
+      --muted: #888580;
+      --accent: #5b8af5;
+      --accent-soft: rgba(91,138,245,0.12);
+      --green: #40a06c;
+      --green-soft: rgba(64,160,108,0.12);
+      --red: #e64553;
+      --red-soft: rgba(230,69,83,0.12);
+      --orange: #df8e1d;
+      --purple: #8839ef;
+      --purple-soft: rgba(136,57,239,0.12);
+      --dot-color: #d5d0c8;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: var(--font);
+      font-size: 1.25rem;
+      color: var(--text);
+      background: var(--bg);
+      display: flex;
+    }
+
+    /* ===== DOT-GRID PAPER BACKGROUND ===== */
+    .dot-grid-bg {
+      background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 220px;
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      user-select: none;
+      z-index: 10;
+    }
+    .sidebar-brand {
+      padding: 20px 18px 16px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      border-bottom: 1px solid #313244;
+    }
+    .sidebar-nav { flex: 1; padding: 8px; overflow-y: auto; }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 1.1rem; color: var(--sidebar-text);
+      transition: background 0.15s;
+    }
+    .sidebar-item:hover { background: var(--sidebar-hover); }
+    .sidebar-item.active { background: rgba(137,180,250,0.12); color: var(--sidebar-active); font-weight: 600; }
+    .sidebar-section-label {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #585b70; padding: 14px 14px 4px; font-weight: 600;
+    }
+    .sidebar-divider { height: 1px; background: #313244; margin: 6px 10px; }
+    .sidebar-shortcuts {
+      padding: 12px 16px; border-top: 1px solid #313244;
+      font-size: 0.8rem; color: #585b70; line-height: 1.8;
+    }
+    .sidebar-shortcuts kbd {
+      background: #313244; color: #cdd6f4; padding: 1px 6px;
+      border-radius: 4px; font-family: var(--font); font-size: 0.8rem;
+    }
+
+    /* ===== MAIN AREA ===== */
+    .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .content-scroll {
+      flex: 1; overflow-y: auto; padding: 40px 0;
+      scroll-behavior: smooth;
+    }
+    .page-view { display: none; max-width: 780px; margin: 0 auto; padding: 0 32px; }
+    .page-view.active { display: block; }
+
+    /* ===== EDITOR ===== */
+    .editor-title {
+      font-size: 3rem; font-weight: 700; line-height: 1.15;
+      margin-bottom: 4px; outline: none;
+    }
+    .editor-meta {
+      display: flex; gap: 16px; font-size: 0.95rem; color: var(--muted);
+      margin-bottom: 28px; align-items: center;
+    }
+    .meta-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); margin-right: 4px; vertical-align: middle;
+    }
+
+    /* ===== BLOCK EDITOR ===== */
+    .block-editor { min-height: 200px; }
+    .block {
+      position: relative; padding: 6px 12px 6px 32px;
+      border-radius: var(--radius-sm); cursor: text;
+      transition: background 0.12s; border: 2px solid transparent;
+      margin: 2px 0;
+    }
+    .block:hover { background: var(--accent-soft); }
+    .block.focused { border-color: var(--accent); background: var(--accent-soft); }
+    .block .handle {
+      position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 0.9rem; cursor: grab;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .block:hover .handle { opacity: 0.5; }
+    .block p { line-height: 1.6; }
+    .block h1 { font-size: 2.2rem; font-weight: 700; line-height: 1.2; }
+    .block h2 { font-size: 1.8rem; font-weight: 600; line-height: 1.25; }
+    .block h3 { font-size: 1.5rem; font-weight: 600; line-height: 1.3; }
+    .block ul, .block ol { padding-left: 24px; line-height: 1.7; }
+    .block li { margin: 2px 0; }
+    .spacer-line { height: 1px; background: var(--border); margin: 16px 0; }
+    .section-badge {
+      display: inline-block; background: var(--purple-soft); color: var(--purple);
+      padding: 4px 14px; border-radius: 20px; font-size: 0.95rem;
+    }
+
+    /* ===== INLINE DRAWING BLOCK ===== */
+    .drawing-block-wrapper {
+      position: relative; margin: 8px 0; border-radius: var(--radius);
+      border: 2px solid transparent; transition: border-color 0.15s;
+    }
+    .drawing-block-wrapper:hover { border-color: var(--border); }
+    .drawing-block-wrapper.editing { border-color: var(--accent); }
+    .drawing-block-wrapper.focused:not(.editing) { border-color: var(--accent); background: var(--accent-soft); }
+
+    .drawing-canvas-inline {
+      position: relative; width: 100%; min-height: 120px;
+      background-color: #fefefe; border-radius: var(--radius-sm);
+      overflow: hidden; cursor: default;
+      background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .drawing-canvas-inline .canvas-element {
+      position: absolute; border: 2px solid; display: flex;
+      align-items: center; justify-content: center;
+      font-size: 1rem; transition: box-shadow 0.12s;
+      cursor: pointer; user-select: none;
+    }
+    .drawing-canvas-inline .canvas-element.selected {
+      box-shadow: 0 0 0 3px var(--accent);
+    }
+    .drawing-view-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      cursor: pointer; z-index: 2;
+    }
+    .drawing-block-wrapper.editing .drawing-view-overlay { display: none; }
+    .drawing-click-hint {
+      position: absolute; bottom: 8px; right: 12px;
+      font-size: 0.8rem; color: var(--muted); opacity: 0;
+      transition: opacity 0.15s; pointer-events: none; z-index: 3;
+    }
+    .drawing-block-wrapper:hover:not(.editing) .drawing-click-hint { opacity: 1; }
+
+    /* Drawing inline toolbar — only visible when editing */
+    .drawing-inline-toolbar {
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      display: none; background: var(--surface); border-radius: 28px;
+      padding: 3px 6px; box-shadow: var(--shadow-md); z-index: 5;
+      gap: 2px; align-items: center;
+    }
+    .drawing-block-wrapper.editing .drawing-inline-toolbar { display: flex; }
+    .drawing-inline-toolbar button {
+      background: none; border: none; padding: 5px 9px; border-radius: 20px;
+      cursor: pointer; font-family: var(--font); font-size: 0.95rem;
+      color: var(--text); transition: background 0.12s;
+    }
+    .drawing-inline-toolbar button:hover { background: var(--accent-soft); }
+    .drawing-inline-toolbar button:disabled { opacity: 0.3; cursor: default; }
+    .drawing-inline-toolbar button:disabled:hover { background: none; }
+    .drawing-inline-toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; }
+
+    .drawing-status-bar {
+      display: none; font-size: 0.8rem; color: var(--muted);
+      padding: 4px 12px; text-align: right;
+    }
+    .drawing-block-wrapper.editing .drawing-status-bar { display: block; }
+
+    .drawing-resize-handle {
+      height: 8px; cursor: ns-resize; display: flex;
+      justify-content: center; align-items: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .drawing-block-wrapper:hover .drawing-resize-handle,
+    .drawing-block-wrapper.editing .drawing-resize-handle { opacity: 1; }
+    .drawing-resize-handle::after {
+      content: ''; width: 40px; height: 4px;
+      background: var(--border); border-radius: 2px;
+    }
+
+    .empty { text-align: center; padding: 32px; color: var(--muted); font-size: 1.15rem; }
+
+    /* ===== LOG PANEL ===== */
+    .log-panel {
+      margin-top: 20px; background: #1e1e2e; color: #a6adc8;
+      border-radius: var(--radius); padding: 10px 14px;
+      font-size: 0.85rem; max-height: 140px; overflow-y: auto;
+      font-family: var(--font);
+    }
+    .log-line { padding: 2px 0; display: flex; gap: 10px; }
+    .log-ts { color: #585b70; min-width: 70px; }
+    .log-msg { color: #cdd6f4; }
+
+    /* ===== COMMENTS ===== */
+    .page-title { font-size: 2.6rem; font-weight: 700; margin-bottom: 6px; }
+    .page-subtitle { font-size: 1.15rem; color: var(--muted); margin-bottom: 32px; line-height: 1.5; }
+    .two-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .device-panel {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px; border: 1px solid var(--border);
+    }
+    .device-label {
+      font-weight: 600; font-size: 1.1rem; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sync-badge {
+      font-size: 0.75rem; padding: 2px 10px; border-radius: 12px; font-weight: 500;
+    }
+    .sync-badge.synced { background: var(--green-soft); color: var(--green); }
+    .sync-badge.pending { background: rgba(223,142,29,0.12); color: var(--orange); }
+    .sync-badge.offline { background: var(--red-soft); color: var(--red); }
+    .comment-thread {
+      padding: 10px 12px; border-radius: var(--radius-sm);
+      background: var(--bg); margin-bottom: 8px;
+    }
+    .comment-author-name { font-weight: 600; }
+    .comment-on { font-size: 0.85rem; color: var(--muted); margin-left: 6px; }
+    .comment-body { margin-top: 4px; line-height: 1.5; font-size: 1.05rem; }
+
+    /* ===== COLUMNS ===== */
+    .columns-layout {
+      display: flex; gap: 12px; margin-bottom: 16px;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 14px; border: 1px solid var(--border);
+    }
+    .col-lane {
+      flex: 1; padding: 10px; background: var(--bg);
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+    }
+    .col-lane-label {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--muted); margin-bottom: 8px; font-weight: 600;
+    }
+    .col-lane-block {
+      padding: 8px 10px; background: var(--surface);
+      border-radius: var(--radius-sm); margin-bottom: 6px;
+      border: 1px solid var(--border); font-size: 1.05rem;
+    }
+    .empty-dashed {
+      text-align: center; padding: 40px; color: var(--muted); font-size: 1.2rem;
+      border: 2px dashed var(--border); border-radius: var(--radius);
+    }
+
+    /* ===== EXPORT ===== */
+    .export-terminal {
+      background: #1e1e2e; color: #a6adc8; border-radius: var(--radius);
+      padding: 20px; font-family: var(--font); font-size: 0.9rem;
+      white-space: pre-wrap; word-break: break-all; max-height: 500px;
+      overflow-y: auto; line-height: 1.5;
+    }
+
+    /* ===== CONTEXTUAL FLOATING TOOLBAR ===== */
+    .ctx-toolbar {
+      position: fixed;
+      background: var(--surface);
+      border-radius: 28px;
+      padding: 4px 8px;
+      box-shadow: var(--shadow-md);
+      display: none;
+      gap: 2px;
+      align-items: center;
+      z-index: 200;
+      border: 1px solid var(--border);
+      transition: opacity 0.12s, transform 0.12s;
+    }
+    .ctx-toolbar.visible { display: flex; }
+    .ctx-toolbar.keyboard-focused { box-shadow: 0 0 0 2px var(--accent), var(--shadow-md); }
+    .ctx-toolbar button {
+      background: none; border: none; padding: 6px 12px;
+      border-radius: 20px; cursor: pointer; font-family: var(--font);
+      font-size: 1rem; color: var(--text); transition: background 0.12s;
+      white-space: nowrap; outline: none;
+    }
+    .ctx-toolbar button:hover,
+    .ctx-toolbar button.kb-highlight { background: var(--accent-soft); }
+    .ctx-toolbar button.danger:hover { background: var(--red-soft); color: var(--red); }
+    .ctx-toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+    .ctx-toolbar .overflow-btn { font-size: 1.2rem; letter-spacing: -2px; }
+    .ctx-toolbar .overflow-menu {
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      background: var(--surface); border-radius: var(--radius);
+      box-shadow: var(--shadow-md); border: 1px solid var(--border);
+      padding: 4px; display: none; flex-direction: column; min-width: 160px;
+      margin-bottom: 6px;
+    }
+    .ctx-toolbar .overflow-menu.open { display: flex; }
+    .ctx-toolbar .overflow-menu button {
+      text-align: left; border-radius: var(--radius-sm);
+      padding: 8px 14px; font-size: 0.95rem;
+    }
+
+    /* ===== PAGE-SPECIFIC TOOLBARS (comments, columns, export) ===== */
+    .page-toolbar {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--surface); border-radius: 28px; padding: 6px 12px;
+      box-shadow: var(--shadow-md); display: none; gap: 4px;
+      align-items: center; z-index: 100; border: 1px solid var(--border);
+    }
+    .page-toolbar.visible { display: flex; }
+    .page-toolbar button {
+      background: none; border: none; padding: 8px 14px;
+      border-radius: 20px; cursor: pointer; font-family: var(--font);
+      font-size: 1.05rem; color: var(--text); transition: background 0.12s;
+    }
+    .page-toolbar button:hover { background: var(--accent-soft); }
+    .page-toolbar .separator { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
+  </style>
+</head>
+<body class="dot-grid-bg">
+
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+  <div class="sidebar-brand">📝 Paperlike</div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Document</div>
+    <div class="sidebar-item active" data-page="editor" onclick="showPage('editor')">
+      <span>📄</span> Editor
+    </div>
+    <div class="sidebar-item" data-page="comments" onclick="showPage('comments')">
+      <span>💬</span> Comments
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Layout</div>
+    <div class="sidebar-item" data-page="columns" onclick="showPage('columns')">
+      <span>📊</span> Columns
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">File</div>
+    <div class="sidebar-item" data-page="export" onclick="showPage('export')">
+      <span>📦</span> Export
+    </div>
+  </nav>
+  <div class="sidebar-shortcuts">
+    <div><kbd>Ctrl</kbd>+<kbd>K</kbd> focus toolbar</div>
+    <div><kbd>←</kbd>/<kbd>→</kbd> navigate toolbar</div>
+    <div><kbd>Enter</kbd> execute action</div>
+    <div><kbd>Esc</kbd> dismiss / deselect</div>
+    <div><kbd>↑</kbd>/<kbd>↓</kbd> select block</div>
+  </div>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div class="main-area">
+  <div class="content-scroll dot-grid-bg">
+
+    <!-- EDITOR PAGE -->
+    <div class="page-view active" id="page-editor">
+      <div class="editor-title">Welcome to Paperlike</div>
+      <div class="editor-meta">
+        <span><span class="meta-dot"></span> Lease active</span>
+        <span>Version <strong id="doc-version">0</strong></span>
+        <span><strong id="block-count">0</strong> blocks</span>
+      </div>
+      <div class="block-editor" id="block-editor"></div>
+      <div class="log-panel" id="body-log">
+        <div class="log-line"><span class="log-ts">ready</span><span class="log-msg">editor initialized</span></div>
+      </div>
+    </div>
+
+    <!-- COMMENTS PAGE -->
+    <div class="page-view" id="page-comments">
+      <div class="page-title">Comments</div>
+      <div class="page-subtitle">CRDT-powered — offline edits from multiple devices merge automatically</div>
+      <div class="two-panel">
+        <div class="device-panel">
+          <div class="device-label">📱 Device A <span class="sync-badge synced" id="sync-a">synced</span></div>
+          <div id="comments-a"><div class="empty">no comments yet</div></div>
+        </div>
+        <div class="device-panel">
+          <div class="device-label">💻 Device B <span class="sync-badge synced" id="sync-b">synced</span></div>
+          <div id="comments-b"><div class="empty">no comments yet</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMNS PAGE -->
+    <div class="page-view" id="page-columns">
+      <div class="page-title">Column Sections</div>
+      <div class="page-subtitle">Recursive lane-based layouts — sections nest inside sections</div>
+      <div id="columns-area"><div class="empty-dashed">add a column layout below</div></div>
+    </div>
+
+    <!-- EXPORT PAGE -->
+    <div class="page-view" id="page-export">
+      <div class="page-title">Export / Import</div>
+      <div class="page-subtitle">.paperlike bundle — body.json, drawings, comments, manifest</div>
+      <div class="export-terminal" id="export-preview">click "export" in the toolbar to see the serialized bundle</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== CONTEXTUAL FLOATING TOOLBAR ===== -->
+<div class="ctx-toolbar" id="ctx-toolbar">
+  <div class="overflow-menu" id="overflow-menu"></div>
+</div>
+
+<!-- PAGE-SPECIFIC TOOLBARS (non-editor pages) -->
+<div class="page-toolbar" id="toolbar-comments">
+  <button onclick="addCommentA()">👩 Alice</button>
+  <button onclick="addCommentB()">👨 Bob</button>
+  <div class="separator"></div>
+  <button onclick="syncComments()">🔄 sync</button>
+  <button onclick="goOffline()">📴</button>
+  <button onclick="goOnline()">📶</button>
+</div>
+
+<div class="page-toolbar" id="toolbar-columns">
+  <button onclick="addTwoColumns()">2 columns</button>
+  <button onclick="addThreeColumns()">3 columns</button>
+  <button onclick="addNestedSection()">nested</button>
+</div>
+
+<div class="page-toolbar" id="toolbar-export">
+  <button onclick="exportBundle()">📤 export</button>
+  <button onclick="reimportBundle()">📥 re-import</button>
+</div>
+
+<script>
+// =========================================================================
+// PAPERLIKE DEMO — Single contextual toolbar, dot-grid paper
+// =========================================================================
+
+// --- Navigation ---
+let currentPage = 'editor';
+
+function showPage(name) {
+  currentPage = name;
+  document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.sidebar-item').forEach(s => {
+    s.classList.toggle('active', s.dataset.page === name);
+  });
+  // Hide page toolbars, show the right one
+  document.querySelectorAll('.page-toolbar').forEach(t => t.classList.remove('visible'));
+  if (name !== 'editor') {
+    const tb = document.getElementById('toolbar-' + name);
+    if (tb) tb.classList.add('visible');
+    hideContextToolbar();
+  } else {
+    updateContextToolbar();
+  }
+}
+
+// --- ID helpers ---
+let idCounter = 0;
+const makeId = (prefix) => prefix + '-' + (++idCounter);
+
+// --- State ---
+let blocks = [];
+let focusedBlockId = null;
+let editingDrawingId = null;
+let docVersion = 0;
+const drawingStates = {};
+
+// =====================================================================
+// TOOLBAR CONTEXT SYSTEM
+// =====================================================================
+
+/**
+ * Resolve the current ToolbarContext based on editor state.
+ * Priority: drawing > block > null
+ */
+function getToolbarContext() {
+  if (editingDrawingId) {
+    const block = blocks.find(b => b.type === 'drawing_ref' && b.drawingId === editingDrawingId);
+    const ds = getDrawingState(editingDrawingId);
+    return {
+      kind: 'drawing',
+      blockId: block ? block.id : '',
+      drawingId: editingDrawingId,
+      selectedElementIds: ds.selectedElementId ? [ds.selectedElementId] : [],
+    };
+  }
+  if (focusedBlockId) {
+    const block = blocks.find(b => b.id === focusedBlockId);
+    if (!block) return null;
+    if (block.type === 'section') {
+      return { kind: 'section', sectionId: block.id };
+    }
+    return { kind: 'block', blockId: block.id };
+  }
+  return null;
+}
+
+// =====================================================================
+// CONTEXTUAL TOOLBAR — single floating toolbar, context-driven actions
+// =====================================================================
+
+const ctxToolbar = document.getElementById('ctx-toolbar');
+const overflowMenu = document.getElementById('overflow-menu');
+let toolbarKbIndex = -1;
+let toolbarKbActive = false;
+
+/** Build action set based on current context. */
+function getActionsForContext(ctx) {
+  if (!ctx) return { primary: [], overflow: [] };
+
+  switch (ctx.kind) {
+    case 'block':
+      return {
+        primary: [
+          { label: '↑', title: 'Move up', action: moveSelectedUp },
+          { label: '↓', title: 'Move down', action: moveSelectedDown },
+          { label: '⊕', title: 'Duplicate', action: duplicateBlock },
+          { label: '✕', title: 'Delete', action: deleteSelected, danger: true },
+          { label: '✨', title: 'Improve (AI)', action: aiImprove },
+        ],
+        overflow: [
+          { label: '¶ paragraph', action: addParagraph },
+          { label: 'H heading', action: addHeading },
+          { label: '☰ list', action: addList },
+          { label: '— spacer', action: addSpacer },
+          { label: '🖼 drawing', action: addDrawingBlock },
+          { label: '⊞ 2 columns', action: wrapInSection },
+        ],
+      };
+
+    case 'section':
+      return {
+        primary: [
+          { label: '⊞', title: 'Change columns', action: () => {} },
+          { label: '+col', title: 'Add column', action: () => {} },
+          { label: '−col', title: 'Remove column', action: () => {} },
+          { label: '💬', title: 'Comment', action: () => {} },
+          { label: '✨', title: 'Improve (AI)', action: aiImprove },
+        ],
+        overflow: [],
+      };
+
+    case 'drawing':
+      return {
+        primary: [
+          { label: '↩', title: 'Undo', action: () => drawingUndo(ctx.drawingId) },
+          { label: '↪', title: 'Redo', action: () => drawingRedo(ctx.drawingId) },
+          { label: '▭', title: 'Rectangle', action: () => addShapeToDrawing(ctx.drawingId, 'rectangle') },
+          { label: '◯', title: 'Ellipse', action: () => addShapeToDrawing(ctx.drawingId, 'ellipse') },
+          { label: '╱', title: 'Line', action: () => addShapeToDrawing(ctx.drawingId, 'line') },
+          { label: '✕', title: 'Delete element', action: () => deleteDrawingElement(ctx.drawingId), danger: true },
+          { label: '✨', title: 'Improve (AI)', action: aiImprove },
+        ],
+        overflow: [],
+      };
+
+    default:
+      return { primary: [], overflow: [] };
+  }
+}
+
+/** Position the toolbar near the focused element. */
+function positionToolbar(ctx) {
+  if (!ctx) return;
+  let targetEl = null;
+  if (ctx.kind === 'drawing') {
+    targetEl = document.querySelector('[data-drawing-id="' + ctx.drawingId + '"]');
+  } else if (ctx.kind === 'block' || ctx.kind === 'section') {
+    targetEl = document.querySelector('[data-block-id="' + (ctx.blockId || ctx.sectionId) + '"]');
+  }
+
+  if (!targetEl) {
+    // Fallback: bottom center
+    ctxToolbar.style.bottom = '24px';
+    ctxToolbar.style.left = '50%';
+    ctxToolbar.style.transform = 'translateX(-50%)';
+    ctxToolbar.style.top = '';
+    return;
+  }
+
+  const rect = targetEl.getBoundingClientRect();
+  const tbHeight = 44;
+  const gap = 8;
+
+  // If drawing is editing, position at bottom of drawing
+  if (ctx.kind === 'drawing') {
+    ctxToolbar.style.top = (rect.bottom + gap) + 'px';
+    ctxToolbar.style.left = (rect.left + rect.width / 2) + 'px';
+    ctxToolbar.style.transform = 'translateX(-50%)';
+    ctxToolbar.style.bottom = '';
+  } else {
+    // Position above the block
+    const top = rect.top - tbHeight - gap;
+    if (top > 10) {
+      ctxToolbar.style.top = top + 'px';
+    } else {
+      ctxToolbar.style.top = (rect.bottom + gap) + 'px';
+    }
+    ctxToolbar.style.left = (rect.left + rect.width / 2) + 'px';
+    ctxToolbar.style.transform = 'translateX(-50%)';
+    ctxToolbar.style.bottom = '';
+  }
+}
+
+/** Render and show the contextual toolbar. */
+function updateContextToolbar() {
+  if (currentPage !== 'editor') { hideContextToolbar(); return; }
+  const ctx = getToolbarContext();
+  if (!ctx) { hideContextToolbar(); return; }
+
+  const { primary, overflow } = getActionsForContext(ctx);
+  if (primary.length === 0) { hideContextToolbar(); return; }
+
+  // Build primary buttons
+  let html = '';
+  primary.forEach((act, i) => {
+    const cls = (act.danger ? ' danger' : '') + (toolbarKbActive && i === toolbarKbIndex ? ' kb-highlight' : '');
+    html += '<button class="tb-action' + cls + '" data-tb-idx="' + i + '" title="' + (act.title || '') + '" onclick="execToolbarAction(' + i + ')">' + act.label + '</button>';
+  });
+
+  if (overflow.length > 0) {
+    html += '<div class="sep"></div>';
+    const ovIdx = primary.length;
+    const cls = toolbarKbActive && ovIdx === toolbarKbIndex ? ' kb-highlight' : '';
+    html += '<button class="tb-action overflow-btn' + cls + '" data-tb-idx="' + ovIdx + '" onclick="toggleOverflow()" title="More actions">⋯</button>';
+  }
+
+  ctxToolbar.innerHTML = html;
+
+  // Build overflow menu (re-create inside toolbar)
+  if (overflow.length > 0) {
+    const menu = document.createElement('div');
+    menu.className = 'overflow-menu';
+    menu.id = 'overflow-menu';
+    overflow.forEach((act, j) => {
+      const btn = document.createElement('button');
+      btn.textContent = act.label;
+      btn.onclick = (e) => { e.stopPropagation(); act.action(); closeOverflow(); };
+      menu.appendChild(btn);
+    });
+    ctxToolbar.appendChild(menu);
+  }
+
+  positionToolbar(ctx);
+  ctxToolbar.classList.add('visible');
+
+  // Update undo/redo disabled state for drawing context
+  if (ctx.kind === 'drawing') {
+    const ds = getDrawingState(ctx.drawingId);
+    const buttons = ctxToolbar.querySelectorAll('.tb-action');
+    if (buttons[0]) buttons[0].disabled = ds.historyState.undoCursor < 0;
+    if (buttons[1]) buttons[1].disabled = ds.historyState.undoCursor >= ds.historyState.actionCount - 1;
+  }
+
+  // Store current actions for keyboard execution
+  ctxToolbar._actions = [...primary, ...(overflow.length > 0 ? [{ label: '⋯', action: toggleOverflow }] : [])];
+}
+
+function hideContextToolbar() {
+  ctxToolbar.classList.remove('visible', 'keyboard-focused');
+  toolbarKbActive = false;
+  toolbarKbIndex = -1;
+  closeOverflow();
+}
+
+function toggleOverflow() {
+  const menu = ctxToolbar.querySelector('.overflow-menu');
+  if (menu) menu.classList.toggle('open');
+}
+
+function closeOverflow() {
+  const menu = ctxToolbar.querySelector('.overflow-menu');
+  if (menu) menu.classList.remove('open');
+}
+
+function execToolbarAction(idx) {
+  const actions = ctxToolbar._actions;
+  if (actions && actions[idx]) actions[idx].action();
+}
+
+// =====================================================================
+// DRAWING STATE MANAGEMENT
+// =====================================================================
+
+function getDrawingState(drawingId) {
+  if (!drawingStates[drawingId]) {
+    drawingStates[drawingId] = {
+      elements: [], actions: [],
+      historyState: { undoCursor: -1, actionCount: 0 },
+      selectedElementId: null, editing: false, height: 220,
+    };
+  }
+  return drawingStates[drawingId];
+}
+
+const colors = ['#5b8af5', '#e64553', '#40a06c', '#df8e1d', '#8839ef', '#ea76cb', '#179299', '#fe640b'];
+
+function addShapeToDrawing(drawingId, type) {
+  const ds = getDrawingState(drawingId);
+  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"] .drawing-canvas-inline');
+  const w = wrapper ? wrapper.clientWidth : 700;
+  const h = ds.height - 50;
+  const size = type === 'line'
+    ? { width: 80 + Math.random() * 120, height: 0 }
+    : { width: 60 + Math.random() * 100, height: 40 + Math.random() * 80 };
+  const x = 20 + Math.random() * (w - size.width - 40);
+  const y = 20 + Math.random() * Math.max(40, h - (size.height || 20) - 40);
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const bg = Math.random() > 0.4 ? color + '18' : 'transparent';
+
+  const el = {
+    id: makeId('el'), type, x: Math.round(x), y: Math.round(y),
+    ...size, strokeColor: color, backgroundColor: bg,
+    angle: type === 'line' ? Math.round(Math.random() * 40 - 20) : 0,
+  };
+
+  const action = {
+    drawingId, historyGroupId: makeId('hg'),
+    forward: [{ type: 'add_element', element: el }],
+    inverse: [{ type: 'delete_element', elementId: el.id }],
+    timestamp: Date.now(),
+  };
+  ds.actions = ds.actions.slice(0, ds.historyState.undoCursor + 1);
+  ds.actions.push(action);
+  ds.elements.push(el);
+  ds.historyState = { undoCursor: ds.actions.length - 1, actionCount: ds.actions.length };
+  ds.selectedElementId = el.id;
+  renderDrawingBlock(drawingId);
+  updateContextToolbar();
+  logBody('draw: add ' + type + ' in ' + drawingId);
+}
+
+function applyDrawingPatches(drawingId, patches) {
+  const ds = getDrawingState(drawingId);
+  patches.forEach(patch => {
+    switch (patch.type) {
+      case 'add_element': ds.elements.push(patch.element); break;
+      case 'delete_element': ds.elements = ds.elements.filter(e => e.id !== patch.elementId); break;
+      case 'update_element': ds.elements = ds.elements.map(e => e.id === patch.elementId ? { ...e, ...patch.patch } : e); break;
+    }
+  });
+}
+
+function drawingUndo(drawingId) {
+  const ds = getDrawingState(drawingId);
+  if (ds.historyState.undoCursor < 0) return;
+  const a = ds.actions[ds.historyState.undoCursor];
+  if (!a) return;
+  applyDrawingPatches(drawingId, a.inverse);
+  ds.historyState = { ...ds.historyState, undoCursor: ds.historyState.undoCursor - 1 };
+  renderDrawingBlock(drawingId);
+  updateContextToolbar();
+  logBody('draw: undo in ' + drawingId);
+}
+
+function drawingRedo(drawingId) {
+  const ds = getDrawingState(drawingId);
+  if (ds.historyState.undoCursor >= ds.historyState.actionCount - 1) return;
+  const a = ds.actions[ds.historyState.undoCursor + 1];
+  if (!a) return;
+  applyDrawingPatches(drawingId, a.forward);
+  ds.historyState = { ...ds.historyState, undoCursor: ds.historyState.undoCursor + 1 };
+  renderDrawingBlock(drawingId);
+  updateContextToolbar();
+  logBody('draw: redo in ' + drawingId);
+}
+
+function deleteDrawingElement(drawingId) {
+  const ds = getDrawingState(drawingId);
+  if (!ds.selectedElementId) return;
+  const el = ds.elements.find(e => e.id === ds.selectedElementId);
+  if (!el) return;
+  const action = {
+    drawingId, historyGroupId: makeId('hg'),
+    forward: [{ type: 'delete_element', elementId: el.id }],
+    inverse: [{ type: 'add_element', element: el }],
+    timestamp: Date.now(),
+  };
+  ds.actions = ds.actions.slice(0, ds.historyState.undoCursor + 1);
+  ds.actions.push(action);
+  ds.elements = ds.elements.filter(e => e.id !== ds.selectedElementId);
+  ds.historyState = { undoCursor: ds.actions.length - 1, actionCount: ds.actions.length };
+  ds.selectedElementId = null;
+  renderDrawingBlock(drawingId);
+  updateContextToolbar();
+  logBody('draw: deleted element in ' + drawingId);
+}
+
+function selectDrawingElement(drawingId, elementId) {
+  const ds = getDrawingState(drawingId);
+  ds.selectedElementId = ds.selectedElementId === elementId ? null : elementId;
+  renderDrawingBlock(drawingId);
+  updateContextToolbar();
+}
+
+function enterDrawingEdit(drawingId) {
+  // Close any other editing drawing
+  Object.keys(drawingStates).forEach(id => {
+    if (id !== drawingId && drawingStates[id].editing) {
+      drawingStates[id].editing = false;
+      drawingStates[id].selectedElementId = null;
+      renderDrawingBlock(id);
+    }
+  });
+  const ds = getDrawingState(drawingId);
+  ds.editing = true;
+  editingDrawingId = drawingId;
+  renderDrawingBlock(drawingId);
+  updateContextToolbar();
+}
+
+function exitDrawingEdit(drawingId) {
+  const ds = getDrawingState(drawingId);
+  ds.editing = false;
+  ds.selectedElementId = null;
+  editingDrawingId = null;
+  renderDrawingBlock(drawingId);
+  updateContextToolbar();
+}
+
+// =====================================================================
+// RENDER DRAWING BLOCK
+// =====================================================================
+
+function renderDrawingBlock(drawingId) {
+  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
+  if (!wrapper) return;
+  const ds = getDrawingState(drawingId);
+  const isFocused = focusedBlockId && blocks.find(b => b.id === focusedBlockId && b.type === 'drawing_ref' && b.drawingId === drawingId);
+
+  wrapper.className = 'drawing-block-wrapper' + (ds.editing ? ' editing' : '') + (isFocused && !ds.editing ? ' focused' : '');
+
+  const canvas = wrapper.querySelector('.drawing-canvas-inline');
+  canvas.style.height = ds.height + 'px';
+
+  // Render elements
+  canvas.querySelectorAll('.canvas-element').forEach(e => e.remove());
+  ds.elements.forEach(el => {
+    const sel = el.id === ds.selectedElementId ? ' selected' : '';
+    const color = el.strokeColor || colors[0];
+    const bg = el.backgroundColor || 'transparent';
+    const div = document.createElement('div');
+    div.className = 'canvas-element' + sel;
+    div.dataset.id = el.id;
+    div.onclick = (e) => { e.stopPropagation(); if (ds.editing) selectDrawingElement(drawingId, el.id); };
+
+    if (el.type === 'line') {
+      div.style.cssText = 'left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.width + 'px;height:2px;background:' + color + ';border:none;border-radius:0;transform:rotate(' + (el.angle || 0) + 'deg)';
+    } else {
+      const borderRadius = el.type === 'ellipse' ? '50%' : '4px';
+      div.style.cssText = 'left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.width + 'px;height:' + el.height + 'px;border-color:' + color + ';background:' + bg + ';border-radius:' + borderRadius;
+      const span = document.createElement('span');
+      span.style.cssText = 'color:' + color + ';font-family:var(--font)';
+      span.textContent = el.type === 'rectangle' ? '▭' : '◯';
+      div.appendChild(span);
+    }
+    canvas.appendChild(div);
+  });
+
+  // Update status bar
+  const statusBar = wrapper.querySelector('.drawing-status-bar');
+  if (statusBar) statusBar.textContent = ds.elements.length + ' elements · cursor: ' + ds.historyState.undoCursor + ' / ' + ds.historyState.actionCount + ' actions';
+}
+
+// =====================================================================
+// BLOCK EDITOR
+// =====================================================================
+
+function renderBlocks() {
+  const el = document.getElementById('block-editor');
+  if (blocks.length === 0) {
+    el.innerHTML = '<div class="empty">start typing — press ↑/↓ to navigate, Ctrl+K for toolbar</div>';
+  } else {
+    el.innerHTML = blocks.map(b => {
+      const isFocused = b.id === focusedBlockId;
+
+      if (b.type === 'drawing_ref') {
+        return renderDrawingBlockHTML(b.drawingId, b.id, isFocused);
+      }
+
+      const cls = 'block' + (isFocused ? ' focused' : '');
+      let inner = '';
+      switch (b.type) {
+        case 'paragraph': inner = '<p>' + b.text + '</p>'; break;
+        case 'heading': inner = '<h' + b.level + '>' + b.text + '</h' + b.level + '>'; break;
+        case 'list':
+          const tag = b.ordered ? 'ol' : 'ul';
+          inner = '<' + tag + '>' + b.items.map(i => '<li>' + i + '</li>').join('') + '</' + tag + '>';
+          break;
+        case 'spacer': inner = '<div class="spacer-line"></div>'; break;
+        case 'section': inner = '<span class="section-badge">⊞ section · ' + b.layout.lanes.length + ' lanes</span>'; break;
+      }
+
+      return '<div class="' + cls + '" data-block-id="' + b.id + '" onclick="focusBlock(\'' + b.id + '\')"><span class="handle">⠿</span>' + inner + '</div>';
+    }).join('');
+
+    // Attach drawing resize handlers
+    blocks.forEach(b => {
+      if (b.type === 'drawing_ref') attachDrawingHandlers(b.drawingId);
+    });
+  }
+  document.getElementById('block-count').textContent = blocks.length;
+  document.getElementById('doc-version').textContent = docVersion;
+}
+
+function handleCanvasClick(drawingId) {
+  const ds = getDrawingState(drawingId);
+  if (ds.editing) {
+    ds.selectedElementId = null;
+    renderDrawingBlock(drawingId);
+    updateContextToolbar();
+  }
+}
+
+function handleOverlayClick(event, blockId, drawingId) {
+  event.stopPropagation();
+  focusBlock(blockId);
+  enterDrawingEdit(drawingId);
+}
+
+function renderDrawingBlockHTML(drawingId, blockId, isFocused) {
+  const ds = getDrawingState(drawingId);
+  const focusCls = isFocused && !ds.editing ? ' focused' : '';
+  return '<div class="drawing-block-wrapper' + (ds.editing ? ' editing' : '') + focusCls + '" data-drawing-id="' + drawingId + '" data-block-id="' + blockId + '">' +
+    '<div class="drawing-canvas-inline" style="height:' + ds.height + 'px">' +
+      '<div class="drawing-view-overlay"></div>' +
+      '<div class="drawing-click-hint">click to edit drawing</div>' +
+    '</div>' +
+    '<div class="drawing-status-bar">' + ds.elements.length + ' elements · cursor: ' + ds.historyState.undoCursor + ' / ' + ds.historyState.actionCount + ' actions</div>' +
+    '<div class="drawing-resize-handle" data-drawing-id="' + drawingId + '"></div>' +
+  '</div>';
+}
+
+function attachDrawingHandlers(drawingId) {
+  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
+  if (!wrapper) return;
+  const blockId = wrapper.dataset.blockId;
+
+  // Canvas click: deselect elements when editing
+  const canvas = wrapper.querySelector('.drawing-canvas-inline');
+  if (canvas) canvas.addEventListener('click', () => handleCanvasClick(drawingId));
+
+  // Overlay click: enter edit mode
+  const overlay = wrapper.querySelector('.drawing-view-overlay');
+  if (overlay) overlay.addEventListener('click', (e) => handleOverlayClick(e, blockId, drawingId));
+
+  // Resize handle
+  const handle = wrapper.querySelector('.drawing-resize-handle');
+  if (handle) {
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const ds = getDrawingState(drawingId);
+      const startY = e.clientY;
+      const startH = ds.height;
+      function onMove(ev) {
+        ds.height = Math.max(120, startH + (ev.clientY - startY));
+        const c = wrapper.querySelector('.drawing-canvas-inline');
+        if (c) c.style.height = ds.height + 'px';
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+  renderDrawingBlock(drawingId);
+}
+
+function logBody(msg) {
+  const el = document.getElementById('body-log');
+  const time = new Date().toLocaleTimeString();
+  el.innerHTML += '<div class="log-line"><span class="log-ts">' + time + '</span><span class="log-msg">' + msg + '</span></div>';
+  el.scrollTop = el.scrollHeight;
+}
+
+// =====================================================================
+// BLOCK FOCUS & NAVIGATION
+// =====================================================================
+
+function focusBlock(id) {
+  if (editingDrawingId) {
+    const drawBlock = blocks.find(b => b.type === 'drawing_ref' && b.drawingId === editingDrawingId);
+    if (drawBlock && drawBlock.id !== id) exitDrawingEdit(editingDrawingId);
+  }
+  focusedBlockId = focusedBlockId === id ? null : id;
+  renderBlocks();
+  updateContextToolbar();
+}
+
+function focusNextBlock() {
+  if (blocks.length === 0) return;
+  if (!focusedBlockId) { focusBlock(blocks[0].id); return; }
+  const idx = blocks.findIndex(b => b.id === focusedBlockId);
+  if (idx < blocks.length - 1) focusBlock(blocks[idx + 1].id);
+}
+
+function focusPrevBlock() {
+  if (blocks.length === 0) return;
+  if (!focusedBlockId) { focusBlock(blocks[blocks.length - 1].id); return; }
+  const idx = blocks.findIndex(b => b.id === focusedBlockId);
+  if (idx > 0) focusBlock(blocks[idx - 1].id);
+}
+
+// =====================================================================
+// BLOCK OPERATIONS
+// =====================================================================
+
+const sampleParas = [
+  'Paperlike enables collaborative document editing with real-time sync.',
+  'The block-based architecture supports paragraphs, headings, lists, and embedded drawings.',
+  'Each document maintains a versioned history of all changes.',
+  'CRDT-based comments allow offline editing with automatic merge on reconnection.',
+  'Sections support recursive column layouts for complex document structures.',
+];
+const sampleHeadings = ['Introduction', 'Getting Started', 'Architecture Overview', 'API Reference', 'Conclusion'];
+const sampleTexts = [
+  'This paragraph needs more detail', 'Great point, well articulated',
+  'Consider adding an example here', 'The drawing should include labels',
+  'This section is ready for review', 'Can we simplify this wording?',
+];
+
+function insertBlockAfter(block) {
+  if (focusedBlockId) {
+    const idx = blocks.findIndex(b => b.id === focusedBlockId);
+    if (idx !== -1) {
+      blocks = [...blocks.slice(0, idx + 1), block, ...blocks.slice(idx + 1)];
+    } else {
+      blocks = [...blocks, block];
+    }
+  } else {
+    blocks = [...blocks, block];
+  }
+  docVersion++;
+  focusedBlockId = block.id;
+  renderBlocks();
+  updateContextToolbar();
+}
+
+function addParagraph() {
+  const text = sampleParas[Math.floor(Math.random() * sampleParas.length)];
+  insertBlockAfter({ id: makeId('p'), type: 'paragraph', text });
+  logBody('insert paragraph');
+}
+
+function addHeading() {
+  const text = sampleHeadings[Math.floor(Math.random() * sampleHeadings.length)];
+  const level = Math.ceil(Math.random() * 3);
+  insertBlockAfter({ id: makeId('h'), type: 'heading', text, level });
+  logBody('insert h' + level + ': "' + text + '"');
+}
+
+function addList() {
+  insertBlockAfter({ id: makeId('li'), type: 'list', items: ['First item', 'Second item', 'Third item'], ordered: Math.random() > 0.5 });
+  logBody('insert list');
+}
+
+function addDrawingBlock() {
+  const drawingId = makeId('drawing');
+  getDrawingState(drawingId);
+  insertBlockAfter({ id: makeId('dr'), type: 'drawing_ref', drawingId });
+  logBody('insert drawing block: ' + drawingId);
+}
+
+function addSpacer() {
+  insertBlockAfter({ id: makeId('sp'), type: 'spacer' });
+  logBody('insert spacer');
+}
+
+function duplicateBlock() {
+  if (!focusedBlockId) return;
+  const block = blocks.find(b => b.id === focusedBlockId);
+  if (!block) return;
+  const dup = { ...block, id: makeId(block.type.charAt(0)) };
+  if (block.type === 'drawing_ref') {
+    const newDrawingId = makeId('drawing');
+    const origDs = getDrawingState(block.drawingId);
+    const newDs = getDrawingState(newDrawingId);
+    newDs.elements = JSON.parse(JSON.stringify(origDs.elements));
+    newDs.height = origDs.height;
+    dup.drawingId = newDrawingId;
+  }
+  insertBlockAfter(dup);
+  logBody('duplicate block');
+}
+
+function deleteSelected() {
+  if (!focusedBlockId) return;
+  const id = focusedBlockId;
+  blocks = blocks.filter(b => b.id !== id);
+  focusedBlockId = null;
+  docVersion++;
+  renderBlocks();
+  updateContextToolbar();
+  logBody('delete ' + id);
+}
+
+function moveSelectedUp() {
+  if (!focusedBlockId) return;
+  const idx = blocks.findIndex(b => b.id === focusedBlockId);
+  if (idx <= 0) return;
+  [blocks[idx - 1], blocks[idx]] = [blocks[idx], blocks[idx - 1]];
+  docVersion++;
+  renderBlocks();
+  updateContextToolbar();
+  logBody('move up');
+}
+
+function moveSelectedDown() {
+  if (!focusedBlockId) return;
+  const idx = blocks.findIndex(b => b.id === focusedBlockId);
+  if (idx === -1 || idx >= blocks.length - 1) return;
+  [blocks[idx], blocks[idx + 1]] = [blocks[idx + 1], blocks[idx]];
+  docVersion++;
+  renderBlocks();
+  updateContextToolbar();
+  logBody('move down');
+}
+
+function wrapInSection() {
+  logBody('wrap in section (placeholder)');
+}
+
+function aiImprove() {
+  const ctx = getToolbarContext();
+  if (!ctx) return;
+  logBody('AI improve requested for ' + ctx.kind + ': ' + (ctx.blockId || ctx.drawingId || ctx.sectionId));
+  // In real implementation: emit onAIRequest(ctx), host returns result, apply via body/drawing ops
+}
+
+// =====================================================================
+// KEYBOARD SHORTCUTS
+// =====================================================================
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  // Ctrl+K — focus toolbar
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    if (ctxToolbar.classList.contains('visible')) {
+      toolbarKbActive = true;
+      toolbarKbIndex = 0;
+      ctxToolbar.classList.add('keyboard-focused');
+      updateContextToolbar();
+    }
+    return;
+  }
+
+  // When toolbar is keyboard-focused
+  if (toolbarKbActive) {
+    const actions = ctxToolbar._actions || [];
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      toolbarKbIndex = Math.min(toolbarKbIndex + 1, actions.length - 1);
+      updateContextToolbar();
+      return;
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      toolbarKbIndex = Math.max(toolbarKbIndex - 1, 0);
+      updateContextToolbar();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (actions[toolbarKbIndex]) actions[toolbarKbIndex].action();
+      toolbarKbActive = false;
+      ctxToolbar.classList.remove('keyboard-focused');
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      toolbarKbActive = false;
+      ctxToolbar.classList.remove('keyboard-focused');
+      toolbarKbIndex = -1;
+      updateContextToolbar();
+      return;
+    }
+  }
+
+  if (currentPage === 'editor') {
+    // Drawing undo/redo
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      if (editingDrawingId) {
+        e.preventDefault();
+        if (e.shiftKey) drawingRedo(editingDrawingId);
+        else drawingUndo(editingDrawingId);
+        return;
+      }
+    }
+
+    // Escape
+    if (e.key === 'Escape') {
+      if (editingDrawingId) { exitDrawingEdit(editingDrawingId); return; }
+      if (focusedBlockId) { focusedBlockId = null; renderBlocks(); hideContextToolbar(); return; }
+    }
+
+    // Block navigation with arrow keys (only when no drawing is being edited)
+    if (!editingDrawingId) {
+      if (e.key === 'ArrowDown' && !e.altKey) {
+        e.preventDefault();
+        focusNextBlock();
+        return;
+      }
+      if (e.key === 'ArrowUp' && !e.altKey) {
+        e.preventDefault();
+        focusPrevBlock();
+        return;
+      }
+      // Alt+arrows for move
+      if (e.key === 'ArrowUp' && e.altKey) { e.preventDefault(); moveSelectedUp(); return; }
+      if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); moveSelectedDown(); return; }
+    }
+
+    // Delete focused block
+    if ((e.key === 'Delete' || e.key === 'Backspace') && focusedBlockId && !editingDrawingId) {
+      e.preventDefault();
+      deleteSelected();
+      return;
+    }
+
+    // Enter to edit drawing
+    if (e.key === 'Enter' && focusedBlockId && !editingDrawingId) {
+      const block = blocks.find(b => b.id === focusedBlockId);
+      if (block && block.type === 'drawing_ref') {
+        e.preventDefault();
+        enterDrawingEdit(block.drawingId);
+        return;
+      }
+    }
+  }
+});
+
+// =====================================================================
+// COMMENTS
+// =====================================================================
+
+let commentsOnline = true;
+let pendingA = [], pendingB = [];
+let commentsA = [], commentsB = [];
+let commentCounterA = 0, commentCounterB = 0;
+
+function renderComments() {
+  renderCommentList('comments-a', commentsA);
+  renderCommentList('comments-b', commentsB);
+}
+
+function renderCommentList(id, comments) {
+  const el = document.getElementById(id);
+  if (comments.length === 0) { el.innerHTML = '<div class="empty">no comments yet</div>'; return; }
+  el.innerHTML = comments.map(c =>
+    '<div class="comment-thread"><span class="comment-author-name">' + c.author + '</span><span class="comment-on">on ' + c.anchor + '</span><div class="comment-body">' + c.text + '</div></div>'
+  ).join('');
+}
+
+function addCommentA() {
+  const text = sampleTexts[commentCounterA++ % sampleTexts.length];
+  const c = { id: makeId('c'), author: '👩 Alice', anchor: blocks.length > 0 ? blocks[Math.floor(Math.random() * blocks.length)].id : 'doc', text, createdAt: Date.now() };
+  commentsA.push(c);
+  if (commentsOnline) commentsB.push(c);
+  else { pendingA.push(c); document.getElementById('sync-a').className = 'sync-badge pending'; document.getElementById('sync-a').textContent = 'pending'; }
+  renderComments();
+}
+
+function addCommentB() {
+  const text = sampleTexts[commentCounterB++ % sampleTexts.length];
+  const c = { id: makeId('c'), author: '👨 Bob', anchor: blocks.length > 0 ? blocks[Math.floor(Math.random() * blocks.length)].id : 'doc', text, createdAt: Date.now() };
+  commentsB.push(c);
+  if (commentsOnline) commentsA.push(c);
+  else { pendingB.push(c); document.getElementById('sync-b').className = 'sync-badge pending'; document.getElementById('sync-b').textContent = 'pending'; }
+  renderComments();
+}
+
+function syncComments() {
+  pendingA.forEach(c => { if (!commentsB.find(x => x.id === c.id)) commentsB.push(c); });
+  pendingB.forEach(c => { if (!commentsA.find(x => x.id === c.id)) commentsA.push(c); });
+  pendingA = []; pendingB = [];
+  document.getElementById('sync-a').className = 'sync-badge synced'; document.getElementById('sync-a').textContent = 'synced';
+  document.getElementById('sync-b').className = 'sync-badge synced'; document.getElementById('sync-b').textContent = 'synced';
+  commentsOnline = true;
+  renderComments();
+}
+
+function goOffline() {
+  commentsOnline = false;
+  document.getElementById('sync-a').className = 'sync-badge offline'; document.getElementById('sync-a').textContent = 'offline';
+  document.getElementById('sync-b').className = 'sync-badge offline'; document.getElementById('sync-b').textContent = 'offline';
+}
+
+function goOnline() { syncComments(); }
+
+// =====================================================================
+// COLUMNS
+// =====================================================================
+
+let columnSections = [];
+
+function renderColumns() {
+  const el = document.getElementById('columns-area');
+  if (columnSections.length === 0) { el.innerHTML = '<div class="empty-dashed">add a column layout below</div>'; return; }
+  el.innerHTML = columnSections.map(renderSection).join('');
+}
+
+function renderSection(sec) {
+  return '<div class="columns-layout">' +
+    sec.lanes.map(lane =>
+      '<div class="col-lane"><div class="col-lane-label">' + lane.name + '</div>' +
+      lane.blocks.map(b => '<div class="col-lane-block">' + b + '</div>').join('') +
+      (lane.nested ? renderSection(lane.nested) : '') +
+      '</div>'
+    ).join('') + '</div>';
+}
+
+function addTwoColumns() {
+  columnSections.push({ id: makeId('s'), lanes: [
+    { name: 'Lane A', blocks: ['Introduction text goes here', 'With supporting details'] },
+    { name: 'Lane B', blocks: ['Sidebar content', 'Additional notes', 'Reference links'] },
+  ]});
+  renderColumns();
+}
+
+function addThreeColumns() {
+  columnSections.push({ id: makeId('s'), lanes: [
+    { name: 'Left', blocks: ['Navigation', 'Menu items'] },
+    { name: 'Center', blocks: ['Main content area', 'Primary article text', 'With multiple paragraphs'] },
+    { name: 'Right', blocks: ['Related articles', 'Tags & categories'] },
+  ]});
+  renderColumns();
+}
+
+function addNestedSection() {
+  columnSections.push({ id: makeId('s'), lanes: [
+    { name: 'Outer Left', blocks: ['Outer content'], nested: { id: makeId('s'), lanes: [
+      { name: 'Inner A', blocks: ['Nested block 1'] },
+      { name: 'Inner B', blocks: ['Nested block 2', 'More nesting'] },
+    ]}},
+    { name: 'Outer Right', blocks: ['Right column', 'Content here'] },
+  ]});
+  renderColumns();
+}
+
+// =====================================================================
+// EXPORT
+// =====================================================================
+
+function exportBundle() {
+  const allDrawingIds = blocks.filter(b => b.type === 'drawing_ref').map(b => b.drawingId);
+  const manifest = { version: '1.0', docId: 'doc-demo', createdAt: new Date().toISOString(), drawingIds: allDrawingIds };
+  const bodySnapshot = { docId: 'doc-demo', version: docVersion, blocks };
+
+  let drawingSections = '';
+  allDrawingIds.forEach(did => {
+    const ds = getDrawingState(did);
+    const scene = { drawingId: did, elements: ds.elements, appState: {}, files: {} };
+    drawingSections += '\n🎨 drawings/' + did + '.scene.json (' + ds.elements.length + ' elements)\n' + JSON.stringify(scene, null, 2).slice(0, 300) + (ds.elements.length > 2 ? '\n  ...' : '') + '\n';
+    drawingSections += '\n📜 drawings/' + did + '.history.jsonl (' + ds.actions.length + ' actions)\n' + ds.actions.slice(0, 2).map(a => JSON.stringify(a)).join('\n') + (ds.actions.length > 2 ? '\n...' : '') + '\n';
+    drawingSections += '\n⏱ drawings/' + did + '.history_state.json\n' + JSON.stringify(ds.historyState, null, 2) + '\n';
+  });
+
+  document.getElementById('export-preview').textContent =
+    '📦 .paperlike bundle\n' + '═'.repeat(50) + '\n\n📋 manifest.json\n' +
+    JSON.stringify(manifest, null, 2) + '\n\n📄 body.json (' + blocks.length + ' blocks, version ' + docVersion + ')\n' +
+    JSON.stringify(bodySnapshot, null, 2).slice(0, 500) + (blocks.length > 3 ? '\n  ...' : '') + '\n' +
+    drawingSections + '\n💬 comments: ' + commentsA.length + ' on device A';
+}
+
+function reimportBundle() {
+  if (blocks.length === 0) { document.getElementById('export-preview').textContent = '⚠️ nothing to re-import — add content first'; return; }
+  const allDrawingIds = blocks.filter(b => b.type === 'drawing_ref').map(b => b.drawingId);
+  const checks = [
+    ['body blocks', blocks.length, JSON.parse(JSON.stringify(blocks)).length],
+    ['doc version', docVersion, JSON.parse(JSON.stringify(docVersion))],
+  ];
+  allDrawingIds.forEach(did => {
+    const ds = getDrawingState(did);
+    checks.push([did + ' elements', ds.elements.length, JSON.parse(JSON.stringify(ds.elements)).length]);
+    checks.push([did + ' actions', ds.actions.length, JSON.parse(JSON.stringify(ds.actions)).length]);
+    checks.push([did + ' cursor', ds.historyState.undoCursor, JSON.parse(JSON.stringify(ds.historyState)).undoCursor]);
+  });
+  let r = '📥 re-import verification\n' + '═'.repeat(50) + '\n\n';
+  let ok = true;
+  checks.forEach(([label, exp, act]) => {
+    const pass = exp === act;
+    if (!pass) ok = false;
+    r += (pass ? '✅' : '❌') + ' ' + label + ': ' + act + (pass ? ' (match)' : ' (expected ' + exp + ')') + '\n';
+  });
+  r += '\n' + (ok ? '🎉 all checks passed — state continuity verified!' : '⚠️ some checks failed');
+  document.getElementById('export-preview').textContent = r;
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+
+function initializeDemo() {
+  const d1 = makeId('drawing');
+  const d2 = makeId('drawing');
+
+  blocks = [
+    { id: makeId('h'), type: 'heading', text: 'Welcome to Paperlike', level: 1 },
+    { id: makeId('p'), type: 'paragraph', text: 'Paperlike is a collaborative document editor where text and drawings live side by side. Click on any drawing to edit it — shapes, undo/redo, and history are all per-drawing.' },
+    { id: makeId('dr'), type: 'drawing_ref', drawingId: d1 },
+    { id: makeId('p'), type: 'paragraph', text: 'Each drawing block has its own undo/redo history. You can resize drawings by dragging the handle at the bottom. Width automatically fills the available space.' },
+    { id: makeId('h'), type: 'heading', text: 'Architecture Overview', level: 2 },
+    { id: makeId('li'), type: 'list', items: [
+      'Block-based editor with 6 block types',
+      'Inline Excalidraw-style drawings',
+      'CRDT comments for offline collaboration',
+      'Recursive column sections',
+      'Export/import .paperlike bundles',
+    ], ordered: false },
+    { id: makeId('sp'), type: 'spacer' },
+    { id: makeId('h'), type: 'heading', text: 'Another Drawing Below', level: 3 },
+    { id: makeId('p'), type: 'paragraph', text: 'Multiple drawings can exist in a single document. Each one is independent with its own elements and history.' },
+    { id: makeId('dr'), type: 'drawing_ref', drawingId: d2 },
+    { id: makeId('p'), type: 'paragraph', text: 'Use the contextual toolbar: focus a block and press Ctrl+K to navigate actions with the keyboard. The toolbar adapts to what you are editing — text blocks, drawings, or sections.' },
+  ];
+  docVersion = 11;
+
+  const ds1 = getDrawingState(d1);
+  ds1.height = 250;
+  for (let i = 0; i < 5; i++) addShapeToDrawing(d1, ['rectangle', 'ellipse', 'line'][i % 3]);
+
+  const ds2 = getDrawingState(d2);
+  ds2.height = 180;
+  for (let i = 0; i < 3; i++) addShapeToDrawing(d2, ['ellipse', 'rectangle'][i % 2]);
+
+  exitDrawingEdit(d1);
+  exitDrawingEdit(d2);
+
+  commentsA = [
+    { id: makeId('c'), author: '👩 Alice', anchor: blocks[0].id, text: 'Great title!', createdAt: Date.now() - 60000 },
+    { id: makeId('c'), author: '👨 Bob', anchor: blocks[1].id, text: 'Consider adding more detail about the sync protocol.', createdAt: Date.now() - 30000 },
+  ];
+  commentsB = [...commentsA];
+  addTwoColumns();
+
+  renderBlocks();
+  renderComments();
+}
+
+initializeDemo();
+</script>
+
+</body>
+</html>
