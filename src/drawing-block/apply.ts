@@ -1,9 +1,11 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type {
   DrawingElement,
   DrawingAppState,
   DrawingFiles,
   DrawingScene,
-} from "../types/drawing.js";
+} from "./types.js";
 import type { DrawingPatch } from "./actions.js";
 
 /** Apply a single patch to an elements array */

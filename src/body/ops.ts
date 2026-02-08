@@ -1,3 +1,5 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type { DocId, ActorId, SessionId, LeaseId, OpId, BlockId, LaneId } from "../types/ids.js";
 import type { Block, SectionLayout } from "../types/blocks.js";
 

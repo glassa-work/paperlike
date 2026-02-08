@@ -1,3 +1,5 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type { Block } from "../types/blocks.js";
 import type { BlockId } from "../types/ids.js";
 import type { BodyOp } from "./ops.js";

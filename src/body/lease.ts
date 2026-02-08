@@ -1,3 +1,5 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type { DocId, ActorId, SessionId, LeaseId } from "../types/ids.js";
 
 /** A lease grants single-writer access to a document body */

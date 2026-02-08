@@ -1,11 +1,13 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type { DocId, DrawingId, ActorId, SessionId, LeaseId } from "../types/ids.js";
 import type { DocumentSnapshot } from "../types/document.js";
-import type { DrawingScene } from "../types/drawing.js";
+import type { DrawingScene } from "../drawing-block/types.js";
+import type { DrawingAction } from "../drawing-block/actions.js";
+import type { DrawingHistoryState } from "../drawing-block/history.js";
 import type { BodyOp } from "../body/ops.js";
-import type { DrawingAction } from "../drawing/actions.js";
 import type { CommentStreamEvent } from "../comments/types.js";
 import type { Lease } from "../body/lease.js";
-import type { DrawingHistoryState } from "../drawing/history.js";
 
 /** Callback for receiving stream events */
 export type StreamCallback<T> = (event: T) => void;

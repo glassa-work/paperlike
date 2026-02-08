@@ -1,3 +1,5 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import * as Y from "yjs";
 import type { Comment, CommentAnchor } from "./types.js";
 import type { CommentId, DocId, ActorId } from "../types/ids.js";

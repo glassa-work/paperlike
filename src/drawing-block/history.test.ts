@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { DrawingScene } from "../types/drawing.js";
+import type { DrawingScene } from "./types.js";
 import type { DrawingAction } from "./actions.js";
 import {
   createInitialHistoryState,
@@ -11,7 +11,7 @@ import {
   applyUndo,
   applyRedo,
 } from "./history.js";
-import { createDrawingId, createElementId, createHistoryGroupId } from "../types/ids.js";
+import { createDrawingId, createElementId, createHistoryGroupId } from "./types.js";
 
 const baseScene: DrawingScene = {
   drawingId: createDrawingId("d1"),

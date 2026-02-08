@@ -1,27 +1,22 @@
-import type { DrawingId, ElementId, HistoryGroupId } from "../types/ids.js";
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
+import type { DrawingId, ElementId, HistoryGroupId } from "./types.js";
 import type {
   DrawingElement,
   DrawingAppState,
   DrawingFiles,
   DrawingScene,
-} from "../types/drawing.js";
-import type { DrawingAction, DrawingPatch } from "../drawing/actions.js";
+} from "./types.js";
+import type { DrawingAction, DrawingPatch } from "./actions.js";
 import type { DrawingEngine, EngineSnapshot } from "./engine.js";
-import {
-  createInitialHistoryState,
-  advanceHistory,
-  canUndo,
-  canRedo,
-  undoHistoryState,
-  redoHistoryState,
-  type DrawingHistoryState,
-} from "../drawing/history.js";
-import { applyPatches } from "../drawing/apply.js";
+import type { DrawingHistoryState } from "./history.js";
+import { ActionRecorder, type ActionRecorderState } from "./action-recorder.js";
+import { Emitter } from "./emitter.js";
+import { applyPatches } from "./apply.js";
 
 // ---------------------------------------------------------------------------
-// DrawingBlockController — coordinates a DrawingEngine with persistent
-// undo/redo history. The engine is injected (Dependency Inversion) so
-// internals can be swapped without changing the controller.
+// DrawingBlockController — slim orchestrator that coordinates a DrawingEngine
+// with an ActionRecorder for undo/redo. Each concern lives in its own class.
 // ---------------------------------------------------------------------------
 
 /** Configuration for creating a new controller. */
@@ -31,57 +26,42 @@ export interface DrawingBlockConfig {
   readonly createHistoryGroupId: () => HistoryGroupId;
 }
 
-/** Read-only view of the controller's history state. */
-export interface DrawingBlockState {
+/** Read-only view of the controller's state. */
+export interface DrawingBlockState extends ActionRecorderState {
   readonly drawingId: DrawingId;
-  readonly historyState: DrawingHistoryState;
-  readonly actions: readonly DrawingAction[];
-  readonly canUndo: boolean;
-  readonly canRedo: boolean;
 }
 
 /** Callback for state changes. */
 export type StateChangeCallback = (state: DrawingBlockState) => void;
 
 /**
- * DrawingBlockController owns the action log and undo/redo cursor for a
- * single drawing block. It delegates element storage to the injected
- * DrawingEngine (Single Responsibility).
+ * DrawingBlockController orchestrates a DrawingEngine and an ActionRecorder.
+ * Element storage is delegated to the engine (DIP).
+ * Action recording and undo/redo cursor are delegated to the recorder (SRP).
+ * Event emission is delegated to a generic Emitter.
  */
 export class DrawingBlockController {
   private readonly drawingId: DrawingId;
   private readonly engine: DrawingEngine;
-  private readonly createGroupId: () => HistoryGroupId;
-
-  private actions: DrawingAction[] = [];
-  private historyState: DrawingHistoryState = createInitialHistoryState();
-  private listeners: StateChangeCallback[] = [];
+  private readonly recorder: ActionRecorder;
+  private readonly emitter = new Emitter<DrawingBlockState>();
 
   constructor(config: DrawingBlockConfig) {
     this.drawingId = config.drawingId;
     this.engine = config.engine;
-    this.createGroupId = config.createHistoryGroupId;
+    this.recorder = new ActionRecorder(config.drawingId, config.createHistoryGroupId);
   }
 
-  // -- public API -------------------------------------------------------------
+  // -- public API -----------------------------------------------------------
 
-  /** Get a read-only view of the current state. */
   getState(): DrawingBlockState {
-    return {
-      drawingId: this.drawingId,
-      historyState: this.historyState,
-      actions: Object.freeze([...this.actions]),
-      canUndo: canUndo(this.historyState),
-      canRedo: canRedo(this.historyState),
-    };
+    return { drawingId: this.drawingId, ...this.recorder.getState() };
   }
 
-  /** Get the current engine snapshot. */
   getSnapshot(): EngineSnapshot {
     return this.engine.getSnapshot();
   }
 
-  /** Load a full scene (snapshot + history) — used on init / import. */
   loadScene(
     scene: DrawingScene,
     actions: readonly DrawingAction[],
@@ -92,122 +72,91 @@ export class DrawingBlockController {
       appState: scene.appState,
       files: scene.files,
     });
-    this.actions = [...actions];
-    this.historyState = historyState;
-    this.emitChange();
+    this.recorder.load(actions, historyState);
+    this.emitter.emit(this.getState());
   }
 
-  // -- element operations (each records an undoable action) -------------------
+  // -- element operations (each records an undoable action) -----------------
 
-  /** Add an element and record the action. */
   addElement(element: DrawingElement): void {
     const added = this.engine.addElement(element);
-    this.recordAction(
+    this.recorder.record(
       [{ type: "add_element", element: added }],
       [{ type: "delete_element", elementId: added.id }],
     );
+    this.emitter.emit(this.getState());
   }
 
-  /** Update an element and record the action. */
   updateElement(elementId: ElementId, patch: Partial<DrawingElement>): void {
     const before = this.engine.updateElement(elementId, patch);
     if (!before) return;
-    this.recordAction(
+    this.recorder.record(
       [{ type: "update_element", elementId, patch }],
       [{ type: "update_element", elementId, patch: extractReversePatch(before, patch) }],
     );
+    this.emitter.emit(this.getState());
   }
 
-  /** Delete an element and record the action. */
   deleteElement(elementId: ElementId): void {
     const removed = this.engine.deleteElement(elementId);
     if (!removed) return;
-    this.recordAction(
+    this.recorder.record(
       [{ type: "delete_element", elementId }],
       [{ type: "add_element", element: removed }],
     );
+    this.emitter.emit(this.getState());
   }
 
-  /** Update app state and record the action. */
   setAppState(patch: Partial<DrawingAppState>): void {
     const prev = this.engine.setAppState(patch);
-    this.recordAction(
+    this.recorder.record(
       [{ type: "set_app_state", patch }],
       [{ type: "set_app_state", patch: extractReversePatch(prev, patch) }],
     );
+    this.emitter.emit(this.getState());
   }
 
-  /** Upsert files. */
   upsertFiles(files: DrawingFiles): void {
     this.engine.upsertFiles(files);
-    this.recordAction(
+    this.recorder.record(
       [{ type: "upsert_files", files }],
-      [{ type: "upsert_files", files: {} }], // inverse: no-op (files are additive in v1)
+      [{ type: "upsert_files", files: {} }],
     );
+    this.emitter.emit(this.getState());
   }
 
-  // -- selection proxy --------------------------------------------------------
+  // -- selection proxy ------------------------------------------------------
 
   setSelection(ids: ReadonlySet<ElementId>): void {
     this.engine.setSelection(ids);
   }
 
-  // -- undo / redo ------------------------------------------------------------
+  // -- undo / redo ----------------------------------------------------------
 
-  /** Undo the last action. */
   undo(): boolean {
-    if (!canUndo(this.historyState)) return false;
-    const action = this.actions[this.historyState.undoCursor];
-    if (!action) return false;
-    this.rebuildFromPatches(action.inverse);
-    this.historyState = undoHistoryState(this.historyState);
-    this.emitChange();
+    const patches = this.recorder.undo();
+    if (!patches) return false;
+    this.rebuildFromPatches(patches);
+    this.emitter.emit(this.getState());
     return true;
   }
 
-  /** Redo the next action. */
   redo(): boolean {
-    if (!canRedo(this.historyState)) return false;
-    const action = this.actions[this.historyState.undoCursor + 1];
-    if (!action) return false;
-    this.rebuildFromPatches(action.forward);
-    this.historyState = redoHistoryState(this.historyState);
-    this.emitChange();
+    const patches = this.recorder.redo();
+    if (!patches) return false;
+    this.rebuildFromPatches(patches);
+    this.emitter.emit(this.getState());
     return true;
   }
 
-  // -- subscriptions ----------------------------------------------------------
+  // -- subscriptions --------------------------------------------------------
 
-  /** Subscribe to state changes. Returns unsubscribe function. */
   onChange(cb: StateChangeCallback): () => void {
-    this.listeners.push(cb);
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== cb);
-    };
+    return this.emitter.on(cb);
   }
 
-  // -- private ----------------------------------------------------------------
+  // -- private --------------------------------------------------------------
 
-  private recordAction(forward: DrawingPatch[], inverse: DrawingPatch[]): void {
-    this.truncateRedoStack();
-    const action: DrawingAction = {
-      drawingId: this.drawingId,
-      historyGroupId: this.createGroupId(),
-      forward,
-      inverse,
-      timestamp: Date.now(),
-    };
-    this.actions.push(action);
-    this.historyState = advanceHistory(this.historyState);
-    this.emitChange();
-  }
-
-  /** Discard any actions after the current cursor (branching history). */
-  private truncateRedoStack(): void {
-    this.actions = this.actions.slice(0, this.historyState.undoCursor + 1);
-  }
-
-  /** Rebuild engine state by applying patches to the current scene. */
   private rebuildFromPatches(patches: readonly DrawingPatch[]): void {
     const snap = this.engine.getSnapshot();
     const scene: DrawingScene = {
@@ -222,11 +171,6 @@ export class DrawingBlockController {
       appState: updated.appState,
       files: updated.files,
     });
-  }
-
-  private emitChange(): void {
-    const state = this.getState();
-    for (const cb of this.listeners) cb(state);
   }
 }
 

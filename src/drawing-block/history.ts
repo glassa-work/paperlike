@@ -1,4 +1,6 @@
-import type { DrawingScene } from "../types/drawing.js";
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
+import type { DrawingScene } from "./types.js";
 import type { DrawingAction } from "./actions.js";
 import { applyPatches } from "./apply.js";
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { DefaultDrawingEngine } from "./default-engine.js";
-import type { DrawingElement } from "../types/drawing.js";
-import { createElementId } from "../types/ids.js";
+import type { DrawingElement } from "./types.js";
+import { createElementId } from "./types.js";
 
 const makeElement = (id: string, x = 10, y = 20): DrawingElement => ({
   id: createElementId(id),

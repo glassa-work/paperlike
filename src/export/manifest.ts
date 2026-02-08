@@ -1,3 +1,5 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type { DocId, DrawingId } from "../types/ids.js";
 
 /** Manifest for the .paperlike zip bundle */

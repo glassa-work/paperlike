@@ -1,0 +1,33 @@
+# Cursor Rules for Paperlike
+
+## Documentation Sync (IMPORTANT)
+
+When any code changes affect the module structure, public API, dependency graph, or design patterns, you MUST update:
+
+1. `README.md` - project structure, features, usage examples
+2. `ARCHITECTURE.md` - module dependency graph, design decisions, testing strategy
+3. Inline doc-update comments in changed files
+
+## drawing-block is self-contained
+
+`src/drawing-block/` must have ZERO imports from other `src/` modules. It owns its own types, branded IDs, and all drawing logic. This allows it to be extracted as a standalone package. Other modules re-export from drawing-block (see `types/ids.ts`, `types/drawing.ts`, `drawing/`).
+
+## Code Principles
+
+- SOLID: single responsibility classes, depend on interfaces not implementations
+- DRY: extract shared patterns into utilities
+- Immutable data: readonly types, return new objects from state transitions
+- Branded types for all IDs
+- Pure functions for data transformations
+- Discriminated unions for polymorphic types
+
+## Commit Messages
+
+- No AI/agent attribution in commit messages or git metadata
+- Clean, human-authored style
+
+## Testing
+
+- Unit tests: `*.test.ts` alongside source, run with `npm test`
+- E2E tests: `e2e/`, run with `npm run test:e2e`
+- All tests must pass before merging

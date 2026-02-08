@@ -1,9 +1,10 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type { DocumentSnapshot } from "../types/document.js";
-import type { DrawingScene } from "../types/drawing.js";
-import type { DrawingAction } from "../drawing/actions.js";
-import type { DrawingHistoryState } from "../drawing/history.js";
+import type { DrawingScene, DrawingId } from "../drawing-block/types.js";
+import type { DrawingAction } from "../drawing-block/actions.js";
+import type { DrawingHistoryState } from "../drawing-block/history.js";
 import type { PaperlikeManifest } from "./manifest.js";
-import type { DrawingId } from "../types/ids.js";
 
 /** In-memory representation of a .paperlike bundle's contents */
 export interface PaperlikeBundle {
