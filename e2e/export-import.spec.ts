@@ -2,21 +2,23 @@ import { test, expect } from "@playwright/test";
 import {
   createDocId,
   createBlockId,
-  createDrawingId,
-  createElementId,
-  createHistoryGroupId,
   createActorId,
   createCommentId,
 } from "../src/types/ids.js";
+import {
+  createDrawingId,
+  createElementId,
+  createHistoryGroupId,
+} from "../src/drawing-block/types.js";
 import { insertBlock } from "../src/body/apply.js";
-import { applyPatches } from "../src/drawing/apply.js";
+import { applyPatches } from "../src/drawing-block/apply.js";
 import {
   createInitialHistoryState,
   advanceHistory,
   canUndo,
   applyUndo,
   undoHistoryState,
-} from "../src/drawing/history.js";
+} from "../src/drawing-block/history.js";
 import {
   createCommentsDoc,
   addComment,
@@ -39,9 +41,9 @@ import {
 } from "../src/export/bundle.js";
 import type { ParagraphBlock, DrawingRefBlock } from "../src/types/blocks.js";
 import type { DocumentSnapshot } from "../src/types/document.js";
-import type { DrawingScene } from "../src/types/drawing.js";
-import type { DrawingAction } from "../src/drawing/actions.js";
-import type { DrawingHistoryState } from "../src/drawing/history.js";
+import type { DrawingScene } from "../src/drawing-block/types.js";
+import type { DrawingAction } from "../src/drawing-block/actions.js";
+import type { DrawingHistoryState } from "../src/drawing-block/history.js";
 import type { CommentAnchor } from "../src/comments/types.js";
 import type { PaperlikeBundle, DrawingSceneBundle } from "../src/export/bundle.js";
 

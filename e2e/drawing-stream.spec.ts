@@ -3,8 +3,8 @@ import {
   createDrawingId,
   createElementId,
   createHistoryGroupId,
-} from "../src/types/ids.js";
-import { applyPatches, applyElementPatch } from "../src/drawing/apply.js";
+} from "../src/drawing-block/types.js";
+import { applyPatches, applyElementPatch } from "../src/drawing-block/apply.js";
 import {
   createInitialHistoryState,
   advanceHistory,
@@ -14,9 +14,9 @@ import {
   redoHistoryState,
   applyUndo,
   applyRedo,
-} from "../src/drawing/history.js";
-import type { DrawingScene, DrawingElement } from "../src/types/drawing.js";
-import type { DrawingAction, DrawingPatch } from "../src/drawing/actions.js";
+} from "../src/drawing-block/history.js";
+import type { DrawingScene, DrawingElement } from "../src/drawing-block/types.js";
+import type { DrawingAction, DrawingPatch } from "../src/drawing-block/actions.js";
 
 const makeElement = (id: string, type: string, x: number, y: number): DrawingElement => ({
   id: createElementId(id),

@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import type { DocumentSnapshot } from "../types/document.js";
-import type { DrawingScene } from "../types/drawing.js";
-import type { DrawingAction } from "../drawing/actions.js";
-import type { DrawingHistoryState } from "../drawing/history.js";
+import type { DrawingScene } from "../drawing-block/types.js";
+import type { DrawingAction } from "../drawing-block/actions.js";
+import type { DrawingHistoryState } from "../drawing-block/history.js";
 import type { PaperlikeManifest } from "./manifest.js";
 import {
   buildManifest,

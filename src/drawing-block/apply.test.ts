@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import type { DrawingScene, DrawingElement } from "../types/drawing.js";
+import type { DrawingScene, DrawingElement } from "./types.js";
 import type { DrawingPatch } from "./actions.js";
 import { applyElementPatch, applyAppStatePatch, applyFilesPatch, applyPatches } from "./apply.js";
-import { createDrawingId, createElementId } from "../types/ids.js";
+import { createDrawingId, createElementId } from "./types.js";
 
 const elem1: DrawingElement = {
   id: createElementId("e1"),

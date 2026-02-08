@@ -1,3 +1,5 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type { DocId, BlockId, DrawingId, ElementId, CommentId, ActorId } from "../types/ids.js";
 
 /** A comment anchor refers to a location in the document */

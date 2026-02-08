@@ -1,5 +1,13 @@
-import type { DrawingId, ElementId, HistoryGroupId } from "../types/ids.js";
-import type { DrawingElement, DrawingAppState, DrawingFiles } from "../types/drawing.js";
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
+import type {
+  DrawingId,
+  ElementId,
+  HistoryGroupId,
+  DrawingElement,
+  DrawingAppState,
+  DrawingFiles,
+} from "./types.js";
 
 /** Patch operation types for drawings */
 export interface AddElementPatch {

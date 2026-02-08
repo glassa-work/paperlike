@@ -1,5 +1,7 @@
-import type { DrawingElement, DrawingAppState, DrawingFiles } from "../types/drawing.js";
-import type { ElementId } from "../types/ids.js";
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
+import type { DrawingElement, DrawingAppState, DrawingFiles } from "./types.js";
+import type { ElementId } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // DrawingEngine — the swappable internal that owns element manipulation.

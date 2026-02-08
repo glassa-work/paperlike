@@ -1,3 +1,5 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type { BlockId, DrawingId, LaneId } from "./ids.js";
 
 /** Block types supported in the document body */

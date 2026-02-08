@@ -1,3 +1,5 @@
+// NOTE: If this file changes, update README.md and ARCHITECTURE.md accordingly.
+
 import type { DocId } from "./ids.js";
 import type { Block } from "./blocks.js";
 
