@@ -183,6 +183,15 @@
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     }
     .excalidraw-mount .excalidraw-container { width: 100% !important; height: 100% !important; }
+    /* Hide all Excalidraw UI chrome in view mode */
+    .drawing-block-wrapper:not(.editing) .App-menu,
+    .drawing-block-wrapper:not(.editing) .App-bottom-bar,
+    .drawing-block-wrapper:not(.editing) .App-toolbar,
+    .drawing-block-wrapper:not(.editing) .main-menu-trigger,
+    .drawing-block-wrapper:not(.editing) .footer-center,
+    .drawing-block-wrapper:not(.editing) .layer-ui__wrapper__footer,
+    .drawing-block-wrapper:not(.editing) .layer-ui__wrapper__top-right,
+    .drawing-block-wrapper:not(.editing) .Island { display: none !important; }
     .drawing-view-overlay {
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
       cursor: pointer; z-index: 2;
@@ -766,7 +775,18 @@ function exitDrawingEdit(drawingId) {
   editingDrawingId = null;
   updateDrawingWrapperClass(drawingId);
   rerenderExcalidraw(drawingId);
+  // Center content in view mode
+  scrollDrawingToContent(drawingId);
   updateContextToolbar();
+}
+
+function scrollDrawingToContent(drawingId) {
+  const ds = getDrawingState(drawingId);
+  if (ds.excalidrawAPI && ds.elements.length > 0) {
+    setTimeout(() => {
+      try { ds.excalidrawAPI.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.85 }); } catch(e) {}
+    }, 150);
+  }
 }
 
 function toggleDrawingFullscreen(drawingId) {
