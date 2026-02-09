@@ -143,6 +143,10 @@
     .block ul, .block ol { padding-left: 24px; line-height: 1.7; }
     .block li { margin: 2px 0; }
     .spacer-line { height: 1px; background: var(--border); margin: 16px 0; }
+    [contenteditable="true"] { outline: none; cursor: text; }
+    [contenteditable="true"]:empty::before {
+      content: 'Type here...'; color: var(--muted); font-style: italic;
+    }
     .section-badge {
       display: inline-block; background: var(--purple-soft); color: var(--purple);
       padding: 4px 14px; border-radius: 20px; font-size: 0.95rem;
@@ -388,7 +392,7 @@
 
     <!-- EDITOR PAGE -->
     <div class="page-view active" id="page-editor">
-      <div class="editor-title">Welcome to Paperlike</div>
+      <div class="editor-title" contenteditable="true">Welcome to Paperlike</div>
       <div class="editor-meta">
         <span><span class="meta-dot"></span> Lease active</span>
         <span>Version <strong id="doc-version">0</strong></span>
@@ -912,11 +916,11 @@ function renderBlocks() {
       const cls = 'block' + (isFocused ? ' focused' : '');
       let inner = '';
       switch (b.type) {
-        case 'paragraph': inner = '<p>' + b.text + '</p>'; break;
-        case 'heading': inner = '<h' + b.level + '>' + b.text + '</h' + b.level + '>'; break;
+        case 'paragraph': inner = '<p contenteditable="true" data-field="text">' + b.text + '</p>'; break;
+        case 'heading': inner = '<h' + b.level + ' contenteditable="true" data-field="text">' + b.text + '</h' + b.level + '>'; break;
         case 'list':
           const tag = b.ordered ? 'ol' : 'ul';
-          inner = '<' + tag + '>' + b.items.map(i => '<li>' + i + '</li>').join('') + '</' + tag + '>';
+          inner = '<' + tag + '>' + b.items.map((item, idx) => '<li contenteditable="true" data-field="item" data-index="' + idx + '">' + item + '</li>').join('') + '</' + tag + '>';
           break;
         case 'spacer': inner = '<div class="spacer-line"></div>'; break;
         case 'section': inner = '<span class="section-badge">⊞ section · ' + b.layout.lanes.length + ' lanes</span>'; break;
@@ -1010,14 +1014,30 @@ function logBody(msg) {
 // BLOCK FOCUS & NAVIGATION
 // =====================================================================
 
+function focusEditable(blockId) {
+  const blockEl = document.querySelector('[data-block-id="' + blockId + '"]');
+  if (!blockEl) return;
+  const editable = blockEl.querySelector('[contenteditable="true"]');
+  if (!editable) return;
+  editable.focus();
+  const range = document.createRange();
+  const sel = window.getSelection();
+  range.selectNodeContents(editable);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 function focusBlock(id) {
   if (editingDrawingId) {
     const drawBlock = blocks.find(b => b.type === 'drawing_ref' && b.drawingId === editingDrawingId);
     if (drawBlock && drawBlock.id !== id) exitDrawingEdit(editingDrawingId);
   }
-  focusedBlockId = focusedBlockId === id ? null : id;
+  if (focusedBlockId === id) return;
+  focusedBlockId = id;
   renderBlocks();
   updateContextToolbar();
+  focusEditable(id);
 }
 
 function focusNextBlock() {
@@ -1067,6 +1087,7 @@ function insertBlockAfter(block) {
   focusedBlockId = block.id;
   renderBlocks();
   updateContextToolbar();
+  focusEditable(block.id);
 }
 
 function addParagraph() {
@@ -1166,6 +1187,7 @@ function aiImprove() {
 
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const isEditingText = e.target.getAttribute('contenteditable') === 'true';
 
   // Ctrl+K — focus toolbar
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -1222,14 +1244,28 @@ document.addEventListener('keydown', (e) => {
       }
     }
 
-    // Escape
+    // Escape — first exits text editing, then exits block focus
     if (e.key === 'Escape') {
       if (editingDrawingId) { exitDrawingEdit(editingDrawingId); return; }
+      if (isEditingText) { e.target.blur(); return; }
       if (focusedBlockId) { focusedBlockId = null; renderBlocks(); hideContextToolbar(); return; }
     }
 
-    // Block navigation with arrow keys (only when no drawing is being edited)
-    if (!editingDrawingId) {
+    // Enter in contenteditable: create new paragraph below
+    if (e.key === 'Enter' && isEditingText && !e.shiftKey) {
+      e.preventDefault();
+      const blockEl = e.target.closest('[data-block-id]');
+      if (blockEl) {
+        focusedBlockId = blockEl.dataset.blockId;
+        const newBlock = { id: makeId('p'), type: 'paragraph', text: '' };
+        insertBlockAfter(newBlock);
+        logBody('insert paragraph');
+      }
+      return;
+    }
+
+    // Block navigation with arrow keys (only when no drawing or text is being edited)
+    if (!editingDrawingId && !isEditingText) {
       if (e.key === 'ArrowDown' && !e.altKey) {
         e.preventDefault();
         focusNextBlock();
@@ -1245,15 +1281,15 @@ document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); moveSelectedDown(); return; }
     }
 
-    // Delete focused block
-    if ((e.key === 'Delete' || e.key === 'Backspace') && focusedBlockId && !editingDrawingId) {
+    // Delete focused block (only when not editing text)
+    if ((e.key === 'Delete' || e.key === 'Backspace') && focusedBlockId && !editingDrawingId && !isEditingText) {
       e.preventDefault();
       deleteSelected();
       return;
     }
 
-    // Enter to edit drawing
-    if (e.key === 'Enter' && focusedBlockId && !editingDrawingId) {
+    // Enter to edit drawing (only when not editing text)
+    if (e.key === 'Enter' && focusedBlockId && !editingDrawingId && !isEditingText) {
       const block = blocks.find(b => b.id === focusedBlockId);
       if (block && block.type === 'drawing_ref') {
         e.preventDefault();
@@ -1473,6 +1509,30 @@ function initializeDemo() {
 }
 
 initializeDemo();
+
+// =====================================================================
+// TEXT EDITING — contenteditable sync
+// =====================================================================
+
+document.getElementById('block-editor').addEventListener('input', function(e) {
+  const blockEl = e.target.closest('[data-block-id]');
+  if (!blockEl) return;
+  const blockId = blockEl.dataset.blockId;
+  const block = blocks.find(b => b.id === blockId);
+  if (!block) return;
+  if (e.target.dataset.field === 'text') {
+    block.text = e.target.textContent;
+    docVersion++;
+    document.getElementById('doc-version').textContent = docVersion;
+  } else if (e.target.dataset.field === 'item') {
+    const idx = parseInt(e.target.dataset.index);
+    if (block.items && idx >= 0) {
+      block.items[idx] = e.target.textContent;
+      docVersion++;
+      document.getElementById('doc-version').textContent = docVersion;
+    }
+  }
+});
 </script>
 
 </body>
