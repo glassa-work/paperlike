@@ -7,6 +7,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://esm.sh/@excalidraw/excalidraw@0.18.0/dist/prod/index.css" />
+  <script>window.EXCALIDRAW_ASSET_PATH = "https://esm.sh/@excalidraw/excalidraw@0.18.0/dist/";</script>
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.3.1",
+      "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+      "react-dom": "https://esm.sh/react-dom@18.3.1",
+      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+      "@excalidraw/excalidraw": "https://esm.sh/@excalidraw/excalidraw@0.18.0?external=react,react-dom"
+    }
+  }
+  </script>
   <style>
     /* ============================================================
        PAPERLIKE — Obsidian + Excalidraw inspired, contextual toolbar
@@ -163,20 +176,13 @@
 
     .drawing-canvas-inline {
       position: relative; width: 100%; min-height: 120px;
-      background-color: #fefefe; border-radius: var(--radius-sm);
+      border-radius: var(--radius-sm);
       overflow: hidden; cursor: default;
-      background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
-      background-size: 20px 20px;
     }
-    .drawing-canvas-inline .canvas-element {
-      position: absolute; border: 2px solid; display: flex;
-      align-items: center; justify-content: center;
-      font-size: 1rem; transition: box-shadow 0.12s;
-      cursor: pointer; user-select: none;
+    .excalidraw-mount {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     }
-    .drawing-canvas-inline .canvas-element.selected {
-      box-shadow: 0 0 0 3px var(--accent);
-    }
+    .excalidraw-mount .excalidraw-container { width: 100% !important; height: 100% !important; }
     .drawing-view-overlay {
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
       cursor: pointer; z-index: 2;
@@ -188,24 +194,6 @@
       transition: opacity 0.15s; pointer-events: none; z-index: 3;
     }
     .drawing-block-wrapper:hover:not(.editing) .drawing-click-hint { opacity: 1; }
-
-    /* Drawing inline toolbar — only visible when editing */
-    .drawing-inline-toolbar {
-      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-      display: none; background: var(--surface); border-radius: 28px;
-      padding: 3px 6px; box-shadow: var(--shadow-md); z-index: 5;
-      gap: 2px; align-items: center;
-    }
-    .drawing-block-wrapper.editing .drawing-inline-toolbar { display: flex; }
-    .drawing-inline-toolbar button {
-      background: none; border: none; padding: 5px 9px; border-radius: 20px;
-      cursor: pointer; font-family: var(--font); font-size: 0.95rem;
-      color: var(--text); transition: background 0.12s;
-    }
-    .drawing-inline-toolbar button:hover { background: var(--accent-soft); }
-    .drawing-inline-toolbar button:disabled { opacity: 0.3; cursor: default; }
-    .drawing-inline-toolbar button:disabled:hover { background: none; }
-    .drawing-inline-toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 3px; }
 
     .drawing-status-bar {
       display: none; font-size: 0.8rem; color: var(--muted);
@@ -465,8 +453,35 @@
 
 <script>
 // =========================================================================
-// PAPERLIKE DEMO — Single contextual toolbar, dot-grid paper
+// PAPERLIKE DEMO — Single contextual toolbar, dot-grid paper, Excalidraw
 // =========================================================================
+
+// Excalidraw libs loaded asynchronously — null until ready
+let React = null;
+let createRoot = null;
+let ExcalidrawComponent = null;
+let excalidrawReady = false;
+
+// Load Excalidraw async — page renders immediately, drawings mount when ready
+(async function loadExcalidraw() {
+  try {
+    const [reactMod, reactDomMod, excalidrawMod] = await Promise.all([
+      import('react'),
+      import('react-dom/client'),
+      import('@excalidraw/excalidraw'),
+    ]);
+    React = reactMod.default || reactMod;
+    createRoot = reactDomMod.createRoot;
+    ExcalidrawComponent = excalidrawMod.Excalidraw;
+    excalidrawReady = true;
+    // Mount Excalidraw into any already-rendered drawing containers
+    Object.keys(drawingStates).forEach(id => mountExcalidraw(id));
+    logBody('excalidraw loaded');
+  } catch (err) {
+    console.error('Failed to load Excalidraw:', err);
+    logBody('excalidraw load failed: ' + err.message);
+  }
+})();
 
 // --- Navigation ---
 let currentPage = 'editor';
@@ -504,19 +519,13 @@ const drawingStates = {};
 // TOOLBAR CONTEXT SYSTEM
 // =====================================================================
 
-/**
- * Resolve the current ToolbarContext based on editor state.
- * Priority: drawing > block > null
- */
 function getToolbarContext() {
   if (editingDrawingId) {
     const block = blocks.find(b => b.type === 'drawing_ref' && b.drawingId === editingDrawingId);
-    const ds = getDrawingState(editingDrawingId);
     return {
       kind: 'drawing',
       blockId: block ? block.id : '',
       drawingId: editingDrawingId,
-      selectedElementIds: ds.selectedElementId ? [ds.selectedElementId] : [],
     };
   }
   if (focusedBlockId) {
@@ -539,7 +548,6 @@ const overflowMenu = document.getElementById('overflow-menu');
 let toolbarKbIndex = -1;
 let toolbarKbActive = false;
 
-/** Build action set based on current context. */
 function getActionsForContext(ctx) {
   if (!ctx) return { primary: [], overflow: [] };
 
@@ -578,12 +586,7 @@ function getActionsForContext(ctx) {
     case 'drawing':
       return {
         primary: [
-          { label: '↩', title: 'Undo', action: () => drawingUndo(ctx.drawingId) },
-          { label: '↪', title: 'Redo', action: () => drawingRedo(ctx.drawingId) },
-          { label: '▭', title: 'Rectangle', action: () => addShapeToDrawing(ctx.drawingId, 'rectangle') },
-          { label: '◯', title: 'Ellipse', action: () => addShapeToDrawing(ctx.drawingId, 'ellipse') },
-          { label: '╱', title: 'Line', action: () => addShapeToDrawing(ctx.drawingId, 'line') },
-          { label: '✕', title: 'Delete element', action: () => deleteDrawingElement(ctx.drawingId), danger: true },
+          { label: 'Done', title: 'Exit drawing edit', action: () => exitDrawingEdit(ctx.drawingId) },
           { label: '✨', title: 'Improve (AI)', action: aiImprove },
         ],
         overflow: [],
@@ -594,7 +597,6 @@ function getActionsForContext(ctx) {
   }
 }
 
-/** Position the toolbar near the focused element. */
 function positionToolbar(ctx) {
   if (!ctx) return;
   let targetEl = null;
@@ -605,7 +607,6 @@ function positionToolbar(ctx) {
   }
 
   if (!targetEl) {
-    // Fallback: bottom center
     ctxToolbar.style.bottom = '24px';
     ctxToolbar.style.left = '50%';
     ctxToolbar.style.transform = 'translateX(-50%)';
@@ -617,14 +618,12 @@ function positionToolbar(ctx) {
   const tbHeight = 44;
   const gap = 8;
 
-  // If drawing is editing, position at bottom of drawing
   if (ctx.kind === 'drawing') {
     ctxToolbar.style.top = (rect.bottom + gap) + 'px';
     ctxToolbar.style.left = (rect.left + rect.width / 2) + 'px';
     ctxToolbar.style.transform = 'translateX(-50%)';
     ctxToolbar.style.bottom = '';
   } else {
-    // Position above the block
     const top = rect.top - tbHeight - gap;
     if (top > 10) {
       ctxToolbar.style.top = top + 'px';
@@ -637,7 +636,6 @@ function positionToolbar(ctx) {
   }
 }
 
-/** Render and show the contextual toolbar. */
 function updateContextToolbar() {
   if (currentPage !== 'editor') { hideContextToolbar(); return; }
   const ctx = getToolbarContext();
@@ -646,7 +644,6 @@ function updateContextToolbar() {
   const { primary, overflow } = getActionsForContext(ctx);
   if (primary.length === 0) { hideContextToolbar(); return; }
 
-  // Build primary buttons
   let html = '';
   primary.forEach((act, i) => {
     const cls = (act.danger ? ' danger' : '') + (toolbarKbActive && i === toolbarKbIndex ? ' kb-highlight' : '');
@@ -662,7 +659,6 @@ function updateContextToolbar() {
 
   ctxToolbar.innerHTML = html;
 
-  // Build overflow menu (re-create inside toolbar)
   if (overflow.length > 0) {
     const menu = document.createElement('div');
     menu.className = 'overflow-menu';
@@ -679,15 +675,6 @@ function updateContextToolbar() {
   positionToolbar(ctx);
   ctxToolbar.classList.add('visible');
 
-  // Update undo/redo disabled state for drawing context
-  if (ctx.kind === 'drawing') {
-    const ds = getDrawingState(ctx.drawingId);
-    const buttons = ctxToolbar.querySelectorAll('.tb-action');
-    if (buttons[0]) buttons[0].disabled = ds.historyState.undoCursor < 0;
-    if (buttons[1]) buttons[1].disabled = ds.historyState.undoCursor >= ds.historyState.actionCount - 1;
-  }
-
-  // Store current actions for keyboard execution
   ctxToolbar._actions = [...primary, ...(overflow.length > 0 ? [{ label: '⋯', action: toggleOverflow }] : [])];
 }
 
@@ -714,118 +701,22 @@ function execToolbarAction(idx) {
 }
 
 // =====================================================================
-// DRAWING STATE MANAGEMENT
+// DRAWING STATE MANAGEMENT (Excalidraw-based)
 // =====================================================================
 
 function getDrawingState(drawingId) {
   if (!drawingStates[drawingId]) {
     drawingStates[drawingId] = {
-      elements: [], actions: [],
-      historyState: { undoCursor: -1, actionCount: 0 },
-      selectedElementId: null, editing: false, height: 220,
+      elements: [],
+      appState: {},
+      files: {},
+      editing: false,
+      height: 220,
+      reactRoot: null,
+      excalidrawAPI: null,
     };
   }
   return drawingStates[drawingId];
-}
-
-const colors = ['#5b8af5', '#e64553', '#40a06c', '#df8e1d', '#8839ef', '#ea76cb', '#179299', '#fe640b'];
-
-function addShapeToDrawing(drawingId, type) {
-  const ds = getDrawingState(drawingId);
-  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"] .drawing-canvas-inline');
-  const w = wrapper ? wrapper.clientWidth : 700;
-  const h = ds.height - 50;
-  const size = type === 'line'
-    ? { width: 80 + Math.random() * 120, height: 0 }
-    : { width: 60 + Math.random() * 100, height: 40 + Math.random() * 80 };
-  const x = 20 + Math.random() * (w - size.width - 40);
-  const y = 20 + Math.random() * Math.max(40, h - (size.height || 20) - 40);
-  const color = colors[Math.floor(Math.random() * colors.length)];
-  const bg = Math.random() > 0.4 ? color + '18' : 'transparent';
-
-  const el = {
-    id: makeId('el'), type, x: Math.round(x), y: Math.round(y),
-    ...size, strokeColor: color, backgroundColor: bg,
-    angle: type === 'line' ? Math.round(Math.random() * 40 - 20) : 0,
-  };
-
-  const action = {
-    drawingId, historyGroupId: makeId('hg'),
-    forward: [{ type: 'add_element', element: el }],
-    inverse: [{ type: 'delete_element', elementId: el.id }],
-    timestamp: Date.now(),
-  };
-  ds.actions = ds.actions.slice(0, ds.historyState.undoCursor + 1);
-  ds.actions.push(action);
-  ds.elements.push(el);
-  ds.historyState = { undoCursor: ds.actions.length - 1, actionCount: ds.actions.length };
-  ds.selectedElementId = el.id;
-  renderDrawingBlock(drawingId);
-  updateContextToolbar();
-  logBody('draw: add ' + type + ' in ' + drawingId);
-}
-
-function applyDrawingPatches(drawingId, patches) {
-  const ds = getDrawingState(drawingId);
-  patches.forEach(patch => {
-    switch (patch.type) {
-      case 'add_element': ds.elements.push(patch.element); break;
-      case 'delete_element': ds.elements = ds.elements.filter(e => e.id !== patch.elementId); break;
-      case 'update_element': ds.elements = ds.elements.map(e => e.id === patch.elementId ? { ...e, ...patch.patch } : e); break;
-    }
-  });
-}
-
-function drawingUndo(drawingId) {
-  const ds = getDrawingState(drawingId);
-  if (ds.historyState.undoCursor < 0) return;
-  const a = ds.actions[ds.historyState.undoCursor];
-  if (!a) return;
-  applyDrawingPatches(drawingId, a.inverse);
-  ds.historyState = { ...ds.historyState, undoCursor: ds.historyState.undoCursor - 1 };
-  renderDrawingBlock(drawingId);
-  updateContextToolbar();
-  logBody('draw: undo in ' + drawingId);
-}
-
-function drawingRedo(drawingId) {
-  const ds = getDrawingState(drawingId);
-  if (ds.historyState.undoCursor >= ds.historyState.actionCount - 1) return;
-  const a = ds.actions[ds.historyState.undoCursor + 1];
-  if (!a) return;
-  applyDrawingPatches(drawingId, a.forward);
-  ds.historyState = { ...ds.historyState, undoCursor: ds.historyState.undoCursor + 1 };
-  renderDrawingBlock(drawingId);
-  updateContextToolbar();
-  logBody('draw: redo in ' + drawingId);
-}
-
-function deleteDrawingElement(drawingId) {
-  const ds = getDrawingState(drawingId);
-  if (!ds.selectedElementId) return;
-  const el = ds.elements.find(e => e.id === ds.selectedElementId);
-  if (!el) return;
-  const action = {
-    drawingId, historyGroupId: makeId('hg'),
-    forward: [{ type: 'delete_element', elementId: el.id }],
-    inverse: [{ type: 'add_element', element: el }],
-    timestamp: Date.now(),
-  };
-  ds.actions = ds.actions.slice(0, ds.historyState.undoCursor + 1);
-  ds.actions.push(action);
-  ds.elements = ds.elements.filter(e => e.id !== ds.selectedElementId);
-  ds.historyState = { undoCursor: ds.actions.length - 1, actionCount: ds.actions.length };
-  ds.selectedElementId = null;
-  renderDrawingBlock(drawingId);
-  updateContextToolbar();
-  logBody('draw: deleted element in ' + drawingId);
-}
-
-function selectDrawingElement(drawingId, elementId) {
-  const ds = getDrawingState(drawingId);
-  ds.selectedElementId = ds.selectedElementId === elementId ? null : elementId;
-  renderDrawingBlock(drawingId);
-  updateContextToolbar();
 }
 
 function enterDrawingEdit(drawingId) {
@@ -833,68 +724,137 @@ function enterDrawingEdit(drawingId) {
   Object.keys(drawingStates).forEach(id => {
     if (id !== drawingId && drawingStates[id].editing) {
       drawingStates[id].editing = false;
-      drawingStates[id].selectedElementId = null;
-      renderDrawingBlock(id);
+      rerenderExcalidraw(id);
+      updateDrawingWrapperClass(id);
     }
   });
   const ds = getDrawingState(drawingId);
   ds.editing = true;
   editingDrawingId = drawingId;
-  renderDrawingBlock(drawingId);
+  updateDrawingWrapperClass(drawingId);
+  rerenderExcalidraw(drawingId);
   updateContextToolbar();
 }
 
 function exitDrawingEdit(drawingId) {
   const ds = getDrawingState(drawingId);
   ds.editing = false;
-  ds.selectedElementId = null;
   editingDrawingId = null;
-  renderDrawingBlock(drawingId);
+  updateDrawingWrapperClass(drawingId);
+  rerenderExcalidraw(drawingId);
   updateContextToolbar();
 }
 
-// =====================================================================
-// RENDER DRAWING BLOCK
-// =====================================================================
-
-function renderDrawingBlock(drawingId) {
+function updateDrawingWrapperClass(drawingId) {
   const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
   if (!wrapper) return;
   const ds = getDrawingState(drawingId);
   const isFocused = focusedBlockId && blocks.find(b => b.id === focusedBlockId && b.type === 'drawing_ref' && b.drawingId === drawingId);
-
   wrapper.className = 'drawing-block-wrapper' + (ds.editing ? ' editing' : '') + (isFocused && !ds.editing ? ' focused' : '');
+}
 
-  const canvas = wrapper.querySelector('.drawing-canvas-inline');
-  canvas.style.height = ds.height + 'px';
+// =====================================================================
+// EXCALIDRAW RENDERING
+// =====================================================================
 
-  // Render elements
-  canvas.querySelectorAll('.canvas-element').forEach(e => e.remove());
-  ds.elements.forEach(el => {
-    const sel = el.id === ds.selectedElementId ? ' selected' : '';
-    const color = el.strokeColor || colors[0];
-    const bg = el.backgroundColor || 'transparent';
-    const div = document.createElement('div');
-    div.className = 'canvas-element' + sel;
-    div.dataset.id = el.id;
-    div.onclick = (e) => { e.stopPropagation(); if (ds.editing) selectDrawingElement(drawingId, el.id); };
+function mountExcalidraw(drawingId) {
+  if (!excalidrawReady) return; // Will be called again once loaded
+  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
+  if (!wrapper) return;
+  const ds = getDrawingState(drawingId);
+  const canvasContainer = wrapper.querySelector('.drawing-canvas-inline');
+  const mountPoint = wrapper.querySelector('.excalidraw-mount');
+  if (!canvasContainer || !mountPoint) return;
 
-    if (el.type === 'line') {
-      div.style.cssText = 'left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.width + 'px;height:2px;background:' + color + ';border:none;border-radius:0;transform:rotate(' + (el.angle || 0) + 'deg)';
-    } else {
-      const borderRadius = el.type === 'ellipse' ? '50%' : '4px';
-      div.style.cssText = 'left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.width + 'px;height:' + el.height + 'px;border-color:' + color + ';background:' + bg + ';border-radius:' + borderRadius;
-      const span = document.createElement('span');
-      span.style.cssText = 'color:' + color + ';font-family:var(--font)';
-      span.textContent = el.type === 'rectangle' ? '▭' : '◯';
-      div.appendChild(span);
-    }
-    canvas.appendChild(div);
+  canvasContainer.style.height = ds.height + 'px';
+
+  if (!ds.reactRoot) {
+    ds.reactRoot = createRoot(mountPoint);
+  }
+
+  const excalidrawElement = React.createElement(ExcalidrawComponent, {
+    initialData: {
+      elements: ds.elements,
+      appState: {
+        ...ds.appState,
+        viewBackgroundColor: '#fefefe',
+      },
+      files: ds.files,
+    },
+    viewModeEnabled: !ds.editing,
+    UIOptions: {
+      canvasActions: {
+        changeViewBackgroundColor: false,
+        export: false,
+        loadScene: false,
+        saveToActiveFile: false,
+        toggleTheme: false,
+      },
+    },
+    onChange: (elements, appState, files) => {
+      ds.elements = elements;
+      ds.appState = appState;
+      ds.files = files;
+    },
+    excalidrawAPI: (api) => {
+      ds.excalidrawAPI = api;
+      // Center viewport on elements after mount
+      if (ds.elements.length > 0) {
+        setTimeout(() => {
+          try { api.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.85 }); } catch(e) {}
+        }, 200);
+      }
+    },
   });
 
-  // Update status bar
-  const statusBar = wrapper.querySelector('.drawing-status-bar');
-  if (statusBar) statusBar.textContent = ds.elements.length + ' elements · cursor: ' + ds.historyState.undoCursor + ' / ' + ds.historyState.actionCount + ' actions';
+  ds.reactRoot.render(excalidrawElement);
+}
+
+function rerenderExcalidraw(drawingId) {
+  if (!excalidrawReady) return;
+  const ds = getDrawingState(drawingId);
+  if (!ds.reactRoot) {
+    mountExcalidraw(drawingId);
+    return;
+  }
+
+  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
+  if (!wrapper) return;
+  const canvasContainer = wrapper.querySelector('.drawing-canvas-inline');
+  if (!canvasContainer) return;
+
+  canvasContainer.style.height = ds.height + 'px';
+
+  const excalidrawElement = React.createElement(ExcalidrawComponent, {
+    initialData: {
+      elements: ds.elements,
+      appState: {
+        ...ds.appState,
+        viewBackgroundColor: '#fefefe',
+      },
+      files: ds.files,
+    },
+    viewModeEnabled: !ds.editing,
+    UIOptions: {
+      canvasActions: {
+        changeViewBackgroundColor: false,
+        export: false,
+        loadScene: false,
+        saveToActiveFile: false,
+        toggleTheme: false,
+      },
+    },
+    onChange: (elements, appState, files) => {
+      ds.elements = elements;
+      ds.appState = appState;
+      ds.files = files;
+    },
+    excalidrawAPI: (api) => {
+      ds.excalidrawAPI = api;
+    },
+  });
+
+  ds.reactRoot.render(excalidrawElement);
 }
 
 // =====================================================================
@@ -902,6 +862,15 @@ function renderDrawingBlock(drawingId) {
 // =====================================================================
 
 function renderBlocks() {
+  // Unmount React roots before destroying DOM — they'd point to stale nodes otherwise
+  Object.keys(drawingStates).forEach(id => {
+    const ds = drawingStates[id];
+    if (ds.reactRoot) {
+      try { ds.reactRoot.unmount(); } catch(e) {}
+      ds.reactRoot = null;
+    }
+  });
+
   const el = document.getElementById('block-editor');
   if (blocks.length === 0) {
     el.innerHTML = '<div class="empty">start typing — press ↑/↓ to navigate, Ctrl+K for toolbar</div>';
@@ -929,22 +898,13 @@ function renderBlocks() {
       return '<div class="' + cls + '" data-block-id="' + b.id + '" onclick="focusBlock(\'' + b.id + '\')"><span class="handle">⠿</span>' + inner + '</div>';
     }).join('');
 
-    // Attach drawing resize handlers
+    // Mount Excalidraw for drawing blocks
     blocks.forEach(b => {
       if (b.type === 'drawing_ref') attachDrawingHandlers(b.drawingId);
     });
   }
   document.getElementById('block-count').textContent = blocks.length;
   document.getElementById('doc-version').textContent = docVersion;
-}
-
-function handleCanvasClick(drawingId) {
-  const ds = getDrawingState(drawingId);
-  if (ds.editing) {
-    ds.selectedElementId = null;
-    renderDrawingBlock(drawingId);
-    updateContextToolbar();
-  }
 }
 
 function handleOverlayClick(event, blockId, drawingId) {
@@ -958,10 +918,11 @@ function renderDrawingBlockHTML(drawingId, blockId, isFocused) {
   const focusCls = isFocused && !ds.editing ? ' focused' : '';
   return '<div class="drawing-block-wrapper' + (ds.editing ? ' editing' : '') + focusCls + '" data-drawing-id="' + drawingId + '" data-block-id="' + blockId + '">' +
     '<div class="drawing-canvas-inline" style="height:' + ds.height + 'px">' +
+      '<div class="excalidraw-mount"></div>' +
       '<div class="drawing-view-overlay"></div>' +
       '<div class="drawing-click-hint">click to edit drawing</div>' +
     '</div>' +
-    '<div class="drawing-status-bar">' + ds.elements.length + ' elements · cursor: ' + ds.historyState.undoCursor + ' / ' + ds.historyState.actionCount + ' actions</div>' +
+    '<div class="drawing-status-bar">' + ds.elements.length + ' elements</div>' +
     '<div class="drawing-resize-handle" data-drawing-id="' + drawingId + '"></div>' +
   '</div>';
 }
@@ -970,10 +931,6 @@ function attachDrawingHandlers(drawingId) {
   const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
   if (!wrapper) return;
   const blockId = wrapper.dataset.blockId;
-
-  // Canvas click: deselect elements when editing
-  const canvas = wrapper.querySelector('.drawing-canvas-inline');
-  if (canvas) canvas.addEventListener('click', () => handleCanvasClick(drawingId));
 
   // Overlay click: enter edit mode
   const overlay = wrapper.querySelector('.drawing-view-overlay');
@@ -1000,7 +957,9 @@ function attachDrawingHandlers(drawingId) {
       document.addEventListener('mouseup', onUp);
     });
   }
-  renderDrawingBlock(drawingId);
+
+  // Mount Excalidraw into this container (no-op if not loaded yet)
+  mountExcalidraw(drawingId);
 }
 
 function logBody(msg) {
@@ -1028,14 +987,43 @@ function focusEditable(blockId) {
   sel.addRange(range);
 }
 
+function updateBlockFocusClasses(prevId, newId) {
+  // Remove focus from previous block
+  if (prevId) {
+    const prevBlock = document.querySelector('[data-block-id="' + prevId + '"]');
+    if (prevBlock) {
+      prevBlock.classList.remove('focused');
+      // Drawing wrappers use their own class logic
+      if (prevBlock.classList.contains('drawing-block-wrapper')) {
+        prevBlock.classList.remove('focused');
+      }
+    }
+  }
+  // Add focus to new block
+  if (newId) {
+    const newBlock = document.querySelector('[data-block-id="' + newId + '"]');
+    if (newBlock) {
+      if (newBlock.classList.contains('drawing-block-wrapper')) {
+        if (!newBlock.classList.contains('editing')) {
+          newBlock.classList.add('focused');
+        }
+      } else {
+        newBlock.classList.add('focused');
+      }
+    }
+  }
+}
+
 function focusBlock(id) {
   if (editingDrawingId) {
     const drawBlock = blocks.find(b => b.type === 'drawing_ref' && b.drawingId === editingDrawingId);
     if (drawBlock && drawBlock.id !== id) exitDrawingEdit(editingDrawingId);
   }
   if (focusedBlockId === id) return;
+  const prevId = focusedBlockId;
   focusedBlockId = id;
-  renderBlocks();
+  // Update CSS classes in-place instead of full DOM rebuild
+  updateBlockFocusClasses(prevId, id);
   updateContextToolbar();
   focusEditable(id);
 }
@@ -1130,6 +1118,8 @@ function duplicateBlock() {
     const origDs = getDrawingState(block.drawingId);
     const newDs = getDrawingState(newDrawingId);
     newDs.elements = JSON.parse(JSON.stringify(origDs.elements));
+    newDs.appState = JSON.parse(JSON.stringify(origDs.appState));
+    newDs.files = JSON.parse(JSON.stringify(origDs.files));
     newDs.height = origDs.height;
     dup.drawingId = newDrawingId;
   }
@@ -1140,6 +1130,16 @@ function duplicateBlock() {
 function deleteSelected() {
   if (!focusedBlockId) return;
   const id = focusedBlockId;
+  // Clean up Excalidraw root if it's a drawing
+  const block = blocks.find(b => b.id === id);
+  if (block && block.type === 'drawing_ref') {
+    const ds = drawingStates[block.drawingId];
+    if (ds && ds.reactRoot) {
+      ds.reactRoot.unmount();
+      ds.reactRoot = null;
+    }
+    delete drawingStates[block.drawingId];
+  }
   blocks = blocks.filter(b => b.id !== id);
   focusedBlockId = null;
   docVersion++;
@@ -1178,7 +1178,6 @@ function aiImprove() {
   const ctx = getToolbarContext();
   if (!ctx) return;
   logBody('AI improve requested for ' + ctx.kind + ': ' + (ctx.blockId || ctx.drawingId || ctx.sectionId));
-  // In real implementation: emit onAIRequest(ctx), host returns result, apply via body/drawing ops
 }
 
 // =====================================================================
@@ -1234,17 +1233,7 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (currentPage === 'editor') {
-    // Drawing undo/redo
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-      if (editingDrawingId) {
-        e.preventDefault();
-        if (e.shiftKey) drawingRedo(editingDrawingId);
-        else drawingUndo(editingDrawingId);
-        return;
-      }
-    }
-
-    // Escape — first exits text editing, then exits block focus
+    // Escape — first exits drawing edit, then text editing, then block focus
     if (e.key === 'Escape') {
       if (editingDrawingId) { exitDrawingEdit(editingDrawingId); return; }
       if (isEditingText) { e.target.blur(); return; }
@@ -1281,7 +1270,7 @@ document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown' && e.altKey) { e.preventDefault(); moveSelectedDown(); return; }
     }
 
-    // Delete focused block (only when not editing text)
+    // Delete focused block (only when not editing text or drawing)
     if ((e.key === 'Delete' || e.key === 'Backspace') && focusedBlockId && !editingDrawingId && !isEditingText) {
       e.preventDefault();
       deleteSelected();
@@ -1420,10 +1409,8 @@ function exportBundle() {
   let drawingSections = '';
   allDrawingIds.forEach(did => {
     const ds = getDrawingState(did);
-    const scene = { drawingId: did, elements: ds.elements, appState: {}, files: {} };
-    drawingSections += '\n🎨 drawings/' + did + '.scene.json (' + ds.elements.length + ' elements)\n' + JSON.stringify(scene, null, 2).slice(0, 300) + (ds.elements.length > 2 ? '\n  ...' : '') + '\n';
-    drawingSections += '\n📜 drawings/' + did + '.history.jsonl (' + ds.actions.length + ' actions)\n' + ds.actions.slice(0, 2).map(a => JSON.stringify(a)).join('\n') + (ds.actions.length > 2 ? '\n...' : '') + '\n';
-    drawingSections += '\n⏱ drawings/' + did + '.history_state.json\n' + JSON.stringify(ds.historyState, null, 2) + '\n';
+    const scene = { drawingId: did, elements: ds.elements, appState: ds.appState, files: ds.files };
+    drawingSections += '\n🎨 drawings/' + did + '.scene.json (' + ds.elements.length + ' elements)\n' + JSON.stringify(scene, null, 2).slice(0, 400) + (ds.elements.length > 2 ? '\n  ...' : '') + '\n';
   });
 
   document.getElementById('export-preview').textContent =
@@ -1443,8 +1430,6 @@ function reimportBundle() {
   allDrawingIds.forEach(did => {
     const ds = getDrawingState(did);
     checks.push([did + ' elements', ds.elements.length, JSON.parse(JSON.stringify(ds.elements)).length]);
-    checks.push([did + ' actions', ds.actions.length, JSON.parse(JSON.stringify(ds.actions)).length]);
-    checks.push([did + ' cursor', ds.historyState.undoCursor, JSON.parse(JSON.stringify(ds.historyState)).undoCursor]);
   });
   let r = '📥 re-import verification\n' + '═'.repeat(50) + '\n\n';
   let ok = true;
@@ -1458,8 +1443,53 @@ function reimportBundle() {
 }
 
 // =====================================================================
-// INIT
+// INIT — Excalidraw-format elements
 // =====================================================================
+
+function makeExcalidrawId() {
+  return Math.random().toString(36).slice(2, 12);
+}
+
+function createExcalidrawRect(x, y, w, h, strokeColor, fillColor) {
+  return {
+    id: makeExcalidrawId(), type: 'rectangle',
+    x, y, width: w, height: h, strokeColor, backgroundColor: fillColor,
+    fillStyle: 'hachure', strokeWidth: 2, roughness: 1, opacity: 100,
+    angle: 0, strokeStyle: 'solid', roundness: { type: 3 },
+    seed: Math.floor(Math.random() * 2000000000), version: 1,
+    isDeleted: false, boundElements: null, updated: Date.now(),
+    link: null, locked: false, groupIds: [], frameId: null,
+  };
+}
+
+function createExcalidrawEllipse(x, y, w, h, strokeColor, fillColor) {
+  return {
+    id: makeExcalidrawId(), type: 'ellipse',
+    x, y, width: w, height: h, strokeColor, backgroundColor: fillColor,
+    fillStyle: 'hachure', strokeWidth: 2, roughness: 1, opacity: 100,
+    angle: 0, strokeStyle: 'solid', roundness: { type: 2 },
+    seed: Math.floor(Math.random() * 2000000000), version: 1,
+    isDeleted: false, boundElements: null, updated: Date.now(),
+    link: null, locked: false, groupIds: [], frameId: null,
+  };
+}
+
+function createExcalidrawLine(x, y, w, strokeColor) {
+  return {
+    id: makeExcalidrawId(), type: 'line',
+    x, y, width: w, height: 0, strokeColor, backgroundColor: 'transparent',
+    fillStyle: 'hachure', strokeWidth: 2, roughness: 1, opacity: 100,
+    angle: 0, strokeStyle: 'solid', roundness: { type: 2 },
+    seed: Math.floor(Math.random() * 2000000000), version: 1,
+    isDeleted: false, boundElements: null, updated: Date.now(),
+    link: null, locked: false, groupIds: [], frameId: null,
+    points: [[0, 0], [w, 0]], lastCommittedPoint: null,
+    startBinding: null, endBinding: null,
+    startArrowhead: null, endArrowhead: null,
+  };
+}
+
+const colors = ['#5b8af5', '#e64553', '#40a06c', '#df8e1d', '#8839ef', '#ea76cb', '#179299', '#fe640b'];
 
 function initializeDemo() {
   const d1 = makeId('drawing');
@@ -1467,35 +1497,44 @@ function initializeDemo() {
 
   blocks = [
     { id: makeId('h'), type: 'heading', text: 'Welcome to Paperlike', level: 1 },
-    { id: makeId('p'), type: 'paragraph', text: 'Paperlike is a collaborative document editor where text and drawings live side by side. Click on any drawing to edit it — shapes, undo/redo, and history are all per-drawing.' },
+    { id: makeId('p'), type: 'paragraph', text: 'Paperlike is a collaborative document editor where text and drawings live side by side. Click on any drawing to edit it — full Excalidraw editor with freehand drawing, shapes, text, and more.' },
     { id: makeId('dr'), type: 'drawing_ref', drawingId: d1 },
-    { id: makeId('p'), type: 'paragraph', text: 'Each drawing block has its own undo/redo history. You can resize drawings by dragging the handle at the bottom. Width automatically fills the available space.' },
+    { id: makeId('p'), type: 'paragraph', text: 'Each drawing block embeds a full Excalidraw instance. You can resize drawings by dragging the handle at the bottom. Press Escape or click "Done" to exit edit mode.' },
     { id: makeId('h'), type: 'heading', text: 'Architecture Overview', level: 2 },
     { id: makeId('li'), type: 'list', items: [
       'Block-based editor with 6 block types',
-      'Inline Excalidraw-style drawings',
+      'Inline Excalidraw drawings with full editor',
       'CRDT comments for offline collaboration',
       'Recursive column sections',
       'Export/import .paperlike bundles',
     ], ordered: false },
     { id: makeId('sp'), type: 'spacer' },
     { id: makeId('h'), type: 'heading', text: 'Another Drawing Below', level: 3 },
-    { id: makeId('p'), type: 'paragraph', text: 'Multiple drawings can exist in a single document. Each one is independent with its own elements and history.' },
+    { id: makeId('p'), type: 'paragraph', text: 'Multiple drawings can exist in a single document. Each one is independent with its own elements and undo history.' },
     { id: makeId('dr'), type: 'drawing_ref', drawingId: d2 },
     { id: makeId('p'), type: 'paragraph', text: 'Use the contextual toolbar: focus a block and press Ctrl+K to navigate actions with the keyboard. The toolbar adapts to what you are editing — text blocks, drawings, or sections.' },
   ];
   docVersion = 11;
 
+  // Pre-populate drawing 1 with Excalidraw-format elements
   const ds1 = getDrawingState(d1);
   ds1.height = 250;
-  for (let i = 0; i < 5; i++) addShapeToDrawing(d1, ['rectangle', 'ellipse', 'line'][i % 3]);
+  ds1.elements = [
+    createExcalidrawRect(40, 30, 140, 80, '#5b8af5', '#5b8af518'),
+    createExcalidrawEllipse(220, 50, 100, 70, '#e64553', '#e6455318'),
+    createExcalidrawLine(370, 80, 120, '#40a06c'),
+    createExcalidrawRect(80, 140, 120, 60, '#df8e1d', '#df8e1d18'),
+    createExcalidrawEllipse(350, 30, 80, 80, '#8839ef', '#8839ef18'),
+  ];
 
+  // Pre-populate drawing 2
   const ds2 = getDrawingState(d2);
   ds2.height = 180;
-  for (let i = 0; i < 3; i++) addShapeToDrawing(d2, ['ellipse', 'rectangle'][i % 2]);
-
-  exitDrawingEdit(d1);
-  exitDrawingEdit(d2);
+  ds2.elements = [
+    createExcalidrawEllipse(50, 30, 120, 90, '#ea76cb', '#ea76cb18'),
+    createExcalidrawRect(220, 40, 160, 70, '#179299', '#17929918'),
+    createExcalidrawEllipse(430, 50, 80, 60, '#fe640b', '#fe640b18'),
+  ];
 
   commentsA = [
     { id: makeId('c'), author: '👩 Alice', anchor: blocks[0].id, text: 'Great title!', createdAt: Date.now() - 60000 },
