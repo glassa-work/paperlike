@@ -201,6 +201,21 @@
     }
     .drawing-block-wrapper.editing .drawing-status-bar { display: block; }
 
+    /* ===== FULLSCREEN DRAWING ===== */
+    .drawing-block-wrapper.fullscreen {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1000; margin: 0; border-radius: 0; border: none;
+      background: #fff;
+    }
+    .drawing-block-wrapper.fullscreen .drawing-canvas-inline {
+      height: 100% !important; border-radius: 0;
+    }
+    .drawing-block-wrapper.fullscreen .drawing-resize-handle { display: none; }
+    .drawing-block-wrapper.fullscreen .drawing-status-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: rgba(255,255,255,0.9); z-index: 5;
+    }
+
     .drawing-resize-handle {
       height: 8px; cursor: ns-resize; display: flex;
       justify-content: center; align-items: center;
@@ -587,9 +602,14 @@ function getActionsForContext(ctx) {
       return {
         primary: [
           { label: 'Done', title: 'Exit drawing edit', action: () => exitDrawingEdit(ctx.drawingId) },
-          { label: '✨', title: 'Improve (AI)', action: aiImprove },
+          { label: '⛶', title: 'Fullscreen', action: () => toggleDrawingFullscreen(ctx.drawingId) },
+          { label: '↕+', title: 'Taller', action: () => resizeDrawing(ctx.drawingId, 80) },
+          { label: '↕−', title: 'Shorter', action: () => resizeDrawing(ctx.drawingId, -80) },
+          { label: '☰', title: 'Toggle toolbar', action: () => toggleDrawingToolbar(ctx.drawingId) },
         ],
-        overflow: [],
+        overflow: [
+          { label: '✨ Improve (AI)', action: aiImprove },
+        ],
       };
 
     default:
@@ -712,6 +732,8 @@ function getDrawingState(drawingId) {
       files: {},
       editing: false,
       height: 220,
+      fullscreen: false,
+      toolbarHidden: false,
       reactRoot: null,
       excalidrawAPI: null,
     };
@@ -738,6 +760,8 @@ function enterDrawingEdit(drawingId) {
 
 function exitDrawingEdit(drawingId) {
   const ds = getDrawingState(drawingId);
+  // Exit fullscreen if active
+  if (ds.fullscreen) toggleDrawingFullscreen(drawingId);
   ds.editing = false;
   editingDrawingId = null;
   updateDrawingWrapperClass(drawingId);
@@ -745,34 +769,55 @@ function exitDrawingEdit(drawingId) {
   updateContextToolbar();
 }
 
+function toggleDrawingFullscreen(drawingId) {
+  const ds = getDrawingState(drawingId);
+  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
+  if (!wrapper) return;
+  ds.fullscreen = !ds.fullscreen;
+  wrapper.classList.toggle('fullscreen', ds.fullscreen);
+  // Excalidraw needs to recalculate canvas size after layout change
+  if (ds.excalidrawAPI) {
+    setTimeout(() => ds.excalidrawAPI.refresh(), 50);
+  }
+  updateContextToolbar();
+  logBody(ds.fullscreen ? 'drawing fullscreen' : 'drawing exit fullscreen');
+}
+
+function resizeDrawing(drawingId, delta) {
+  const ds = getDrawingState(drawingId);
+  ds.height = Math.max(120, ds.height + delta);
+  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
+  if (!wrapper) return;
+  const container = wrapper.querySelector('.drawing-canvas-inline');
+  if (container) container.style.height = ds.height + 'px';
+  // Refresh so Excalidraw recalculates canvas dimensions
+  if (ds.excalidrawAPI) {
+    setTimeout(() => ds.excalidrawAPI.refresh(), 50);
+  }
+  logBody('drawing height: ' + ds.height + 'px');
+}
+
+function toggleDrawingToolbar(drawingId) {
+  const ds = getDrawingState(drawingId);
+  ds.toolbarHidden = !ds.toolbarHidden;
+  rerenderExcalidraw(drawingId);
+  logBody(ds.toolbarHidden ? 'drawing toolbar hidden' : 'drawing toolbar visible');
+}
+
 function updateDrawingWrapperClass(drawingId) {
   const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
   if (!wrapper) return;
   const ds = getDrawingState(drawingId);
   const isFocused = focusedBlockId && blocks.find(b => b.id === focusedBlockId && b.type === 'drawing_ref' && b.drawingId === drawingId);
-  wrapper.className = 'drawing-block-wrapper' + (ds.editing ? ' editing' : '') + (isFocused && !ds.editing ? ' focused' : '');
+  wrapper.className = 'drawing-block-wrapper' + (ds.editing ? ' editing' : '') + (isFocused && !ds.editing ? ' focused' : '') + (ds.fullscreen ? ' fullscreen' : '');
 }
 
 // =====================================================================
 // EXCALIDRAW RENDERING
 // =====================================================================
 
-function mountExcalidraw(drawingId) {
-  if (!excalidrawReady) return; // Will be called again once loaded
-  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
-  if (!wrapper) return;
-  const ds = getDrawingState(drawingId);
-  const canvasContainer = wrapper.querySelector('.drawing-canvas-inline');
-  const mountPoint = wrapper.querySelector('.excalidraw-mount');
-  if (!canvasContainer || !mountPoint) return;
-
-  canvasContainer.style.height = ds.height + 'px';
-
-  if (!ds.reactRoot) {
-    ds.reactRoot = createRoot(mountPoint);
-  }
-
-  const excalidrawElement = React.createElement(ExcalidrawComponent, {
+function makeExcalidrawProps(ds, isMount) {
+  const props = {
     initialData: {
       elements: ds.elements,
       appState: {
@@ -798,15 +843,43 @@ function mountExcalidraw(drawingId) {
     },
     excalidrawAPI: (api) => {
       ds.excalidrawAPI = api;
-      // Center viewport on elements after mount
-      if (ds.elements.length > 0) {
-        setTimeout(() => {
-          try { api.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.85 }); } catch(e) {}
-        }, 200);
-      }
     },
-  });
+  };
+  // Hide Excalidraw's built-in toolbars when toggled
+  if (ds.toolbarHidden) {
+    props.UIOptions.tools = { image: false };
+    props.renderTopRightUI = () => null;
+    props.zenModeEnabled = true;
+  }
+  // On initial mount, center viewport on elements
+  if (isMount && ds.elements.length > 0) {
+    const origCallback = props.excalidrawAPI;
+    props.excalidrawAPI = (api) => {
+      origCallback(api);
+      setTimeout(() => {
+        try { api.scrollToContent(undefined, { fitToViewport: true, viewportZoomFactor: 0.85 }); } catch(e) {}
+      }, 200);
+    };
+  }
+  return props;
+}
 
+function mountExcalidraw(drawingId) {
+  if (!excalidrawReady) return; // Will be called again once loaded
+  const wrapper = document.querySelector('[data-drawing-id="' + drawingId + '"]');
+  if (!wrapper) return;
+  const ds = getDrawingState(drawingId);
+  const canvasContainer = wrapper.querySelector('.drawing-canvas-inline');
+  const mountPoint = wrapper.querySelector('.excalidraw-mount');
+  if (!canvasContainer || !mountPoint) return;
+
+  canvasContainer.style.height = ds.height + 'px';
+
+  if (!ds.reactRoot) {
+    ds.reactRoot = createRoot(mountPoint);
+  }
+
+  const excalidrawElement = React.createElement(ExcalidrawComponent, makeExcalidrawProps(ds, true));
   ds.reactRoot.render(excalidrawElement);
 }
 
@@ -825,35 +898,7 @@ function rerenderExcalidraw(drawingId) {
 
   canvasContainer.style.height = ds.height + 'px';
 
-  const excalidrawElement = React.createElement(ExcalidrawComponent, {
-    initialData: {
-      elements: ds.elements,
-      appState: {
-        ...ds.appState,
-        viewBackgroundColor: '#fefefe',
-      },
-      files: ds.files,
-    },
-    viewModeEnabled: !ds.editing,
-    UIOptions: {
-      canvasActions: {
-        changeViewBackgroundColor: false,
-        export: false,
-        loadScene: false,
-        saveToActiveFile: false,
-        toggleTheme: false,
-      },
-    },
-    onChange: (elements, appState, files) => {
-      ds.elements = elements;
-      ds.appState = appState;
-      ds.files = files;
-    },
-    excalidrawAPI: (api) => {
-      ds.excalidrawAPI = api;
-    },
-  });
-
+  const excalidrawElement = React.createElement(ExcalidrawComponent, makeExcalidrawProps(ds, false));
   ds.reactRoot.render(excalidrawElement);
 }
 
